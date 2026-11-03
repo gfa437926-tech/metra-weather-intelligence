@@ -216,11 +216,16 @@ class _MapPageState extends State<MapPage> {
                       ),
                     ),
                   )).toList(growable: false);
-                  final first = stations.first;
+                  final stationPoints = stations
+                      .map((station) => LatLng(station.latitude!, station.longitude!))
+                      .toList(growable: false);
+                  final bounds = LatLngBounds.fromPoints(stationPoints);
                   return FlutterMap(
                     options: MapOptions(
-                      initialCenter: LatLng(first.latitude!, first.longitude!),
-                      initialZoom: 5.2,
+                      initialCameraFit: CameraFit.bounds(
+                        bounds: bounds,
+                        padding: const EdgeInsets.all(36),
+                      ),
                       interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
                     ),
                     children: [
