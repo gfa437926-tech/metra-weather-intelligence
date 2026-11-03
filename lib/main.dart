@@ -4,6 +4,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'data/station_directory_service.dart';
 import 'domain/station_record.dart';
+import 'data/weather_service.dart';
+import 'domain/weather_snapshot.dart';
 
 SupabaseClient? metraSupabaseClient;
 Future<void> main() async {
@@ -51,11 +53,38 @@ class Header extends StatelessWidget { const Header({super.key}); @override Widg
  Container(width:48,height:48,decoration:BoxDecoration(color:navy,borderRadius:BorderRadius.circular(16)),child:const Icon(Icons.cloud_queue,color:Colors.white,size:29)),
  const SizedBox(width:10),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('METRA',style:TextStyle(fontSize:22,fontWeight:FontWeight.w900,color:navy,letterSpacing:1.1)),Text('WEATHER INTELLIGENCE',style:TextStyle(fontSize:9,color:Colors.blueGrey,letterSpacing:1.1))])),
  IconButton(onPressed:()=>ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('مصدر التنبيهات غير متصل حالياً'))),icon:const Icon(Icons.notifications_outlined,color:ink)),const CircleAvatar(backgroundColor:Color(0xFFE1ECFA),child:Icon(Icons.person_outline,color:blue))]);}
-class WeatherHero extends StatelessWidget { const WeatherHero({super.key}); @override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(22),decoration:BoxDecoration(borderRadius:BorderRadius.circular(30),gradient:const LinearGradient(begin:Alignment.topRight,end:Alignment.bottomLeft,colors:[Color(0xFF123B80),navy]),boxShadow:[BoxShadow(color:navy.withOpacity(.18),blurRadius:24,offset:const Offset(0,12))]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
- Row(children:[const Icon(Icons.location_on_outlined,color:Color(0xFFBBD8FF),size:17),const Text('الرياض، المملكة العربية السعودية',style:TextStyle(color:Color(0xFFD6E7FF),fontSize:12)),const Spacer(),Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),decoration:BoxDecoration(color:Colors.white.withOpacity(.12),borderRadius:BorderRadius.circular(20)),child:const Text('عرض توضيحي',style:TextStyle(color:Colors.white,fontSize:10)))]),
- const SizedBox(height:20),Row(children:[const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('29°',style:TextStyle(color:Colors.white,fontSize:66,fontWeight:FontWeight.w300,height:1)),SizedBox(height:8),Text('غائم جزئياً',style:TextStyle(color:Colors.white,fontSize:18,fontWeight:FontWeight.w600)),Text('العظمى 33°  •  الصغرى 21°',style:TextStyle(color:Color(0xFFBBD4F8),fontSize:11))])),const Icon(Icons.wb_cloudy_rounded,color:Color(0xFFFFD66B),size:85)]),
- const SizedBox(height:20),Container(height:1,color:Colors.white24),const SizedBox(height:16),
- const Row(children:[HeroMetric(Icons.water_drop,'62%','الرطوبة'),HeroMetric(Icons.air,'12 km/h','الرياح'),HeroMetric(Icons.visibility,'10 km','الرؤية'),HeroMetric(Icons.compress,'1012','hPa')]) ]));}
+class WeatherHero extends StatefulWidget {
+ const WeatherHero({super.key});
+ @override State<WeatherHero> createState()=>_WeatherHeroState();
+}
+class _WeatherHeroState extends State<WeatherHero> {
+ late Future<WeatherSnapshot> weather;
+ @override void initState(){super.initState(); weather=WeatherService().fetchRiyadh();}
+ void refresh()=>setState(()=>weather=WeatherService().fetchRiyadh());
+ @override Widget build(BuildContext context)=>FutureBuilder<WeatherSnapshot>(
+  future:weather,
+  builder:(context,snapshot){
+   final data=snapshot.data;
+   final loading=snapshot.connectionState==ConnectionState.waiting;
+   return Container(padding:const EdgeInsets.all(22),decoration:BoxDecoration(borderRadius:BorderRadius.circular(30),gradient:const LinearGradient(begin:Alignment.topRight,end:Alignment.bottomLeft,colors:[Color(0xFF123B80),navy]),boxShadow:[BoxShadow(color:navy.withOpacity(.18),blurRadius:24,offset:const Offset(0,12))]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[const Icon(Icons.location_on_outlined,color:Color(0xFFBBD8FF),size:17),const Text('الرياض، المملكة العربية السعودية',style:TextStyle(color:Color(0xFFD6E7FF),fontSize:12)),const Spacer(),Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:5),decoration:BoxDecoration(color:Colors.white.withOpacity(.12),borderRadius:BorderRadius.circular(20)),child:Text(data==null?'بيانات مباشرة':'مباشر • Open-Meteo',style:const TextStyle(color:Colors.white,fontSize:10))),IconButton(onPressed:refresh,icon:const Icon(Icons.refresh,color:Colors.white,size:18),tooltip:'تحديث الطقس')]),
+    const SizedBox(height:20),
+    if(loading) const Center(child:Padding(padding:EdgeInsets.all(18),child:CircularProgressIndicator(color:Colors.white)))
+    else if(data!=null) Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text('${data.temperature.round()}°',style:const TextStyle(color:Colors.white,fontSize:66,fontWeight:FontWeight.w300,height:1)),
+      const SizedBox(height:8),Text(data.condition,style:const TextStyle(color:Colors.white,fontSize:18,fontWeight:FontWeight.w600)),
+      Text('العظمى ${data.maxTemperature.round()}° • الصغرى ${data.minTemperature.round()}°',style:const TextStyle(color:Color(0xFFBBD4F8),fontSize:11))
+    ])),const Icon(Icons.wb_cloudy_rounded,color:Color(0xFFFFD66B),size:85)])
+    else Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('بيانات الطقس غير متاحة',style:TextStyle(color:Colors.white,fontSize:19,fontWeight:FontWeight.bold)),const SizedBox(height:6),const Text('تعذر جلب القراءة الحية. أعد المحاولة عند توفر الاتصال.',style:TextStyle(color:Color(0xFFBBD4F8),fontSize:12)),TextButton(onPressed:refresh,child:const Text('إعادة المحاولة',style:TextStyle(color:Colors.white)))]),
+    if(data!=null) ...[const SizedBox(height:20),Container(height:1,color:Colors.white24),const SizedBox(height:16),Row(children:[
+      HeroMetric(Icons.water_drop,'${data.humidity.round()}%','الرطوبة'),
+      HeroMetric(Icons.air,'${data.windSpeed.round()} km/h','الرياح'),
+      HeroMetric(Icons.compress,'${data.pressure.round()}','hPa'),
+      HeroMetric(Icons.thermostat,'${data.apparentTemperature.round()}°','المحسوسة')
+    ])]
+   ]));
+  });
+}
 class HeroMetric extends StatelessWidget {const HeroMetric(this.icon,this.value,this.label,{super.key});final IconData icon;final String value,label;@override Widget build(BuildContext context)=>Expanded(child:Column(children:[Icon(icon,color:sky,size:19),const SizedBox(height:7),Text(value,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold,fontSize:12)),Text(label,style:const TextStyle(color:Color(0xFFBBD4F8),fontSize:9))]));}
 class SectionTitle extends StatelessWidget {const SectionTitle(this.title,this.action,{super.key});final String title,action;@override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Row(children:[Expanded(child:Text(title,style:const TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.bold))),Text(action,style:const TextStyle(color:blue,fontSize:11,fontWeight:FontWeight.w600))]));}
 class Hour extends StatelessWidget {const Hour(this.time,this.symbol,this.temp,{this.selected=false,super.key});final String time,symbol,temp;final bool selected;@override Widget build(BuildContext context)=>Container(width:68,margin:const EdgeInsets.only(left:8),padding:const EdgeInsets.symmetric(vertical:12),decoration:BoxDecoration(color:selected?blue:Colors.white,borderRadius:BorderRadius.circular(19),boxShadow:[BoxShadow(color:ink.withOpacity(.04),blurRadius:9)]),child:Column(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(time,style:TextStyle(color:selected?Colors.white:Colors.blueGrey,fontSize:10)),Text(symbol,style:const TextStyle(fontSize:24)),Text(temp,style:TextStyle(color:selected?Colors.white:ink,fontWeight:FontWeight.bold))]));}
