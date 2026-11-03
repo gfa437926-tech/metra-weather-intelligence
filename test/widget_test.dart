@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:metra_weather_intelligence/main.dart';
 
 void main() {
