@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405);
+  if (request.method !== "GET" && request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "unauthorized" }, 401);
 
