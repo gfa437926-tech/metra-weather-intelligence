@@ -38,6 +38,12 @@ Keep JWT verification enabled.
 - Official weather alerts, station-specific telemetry and radar/precipitation/temperature/wind map layers are not yet connected; the UI reports this rather than inventing data.
 - Station approval and operational statuses are displayed from stored values. Pending/unverified stations are not presented as operational.
 
+## Official Saudi weather data integration status
+The Saudi National Center for Meteorology (NCM) documents a direct API integration service for real-time weather information, forecasts and early warnings. Access is subscription-based and requires an approved integration request and credentials. The NCM API documentation also describes station observations, WMS/WFS-compatible areal data, and official notification endpoints. METRA does not currently have verified NCM integration credentials configured, so these services are intentionally not called and no official-alert feed is represented as live.
+- NCM API documentation: https://api-doc.ncm.gov.sa/
+- NCM direct API integration: https://www.ncm.gov.sa/en/services/our-services/direct-api-integration
+- NCM official developer guide: https://www.ncm.gov.sa/Ar/EService/Documents/developers/EWS%20APIs%20Technical%20Guide%20V.1.9.pdf
+
 ## Database safety
 No schema or data changes were made to the new database during the current integration work. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
