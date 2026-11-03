@@ -46,15 +46,26 @@ Deno.serve(async (request: Request) => {
     .or(`valid_to.is.null,valid_to.gt.${now}`);
   if (membershipError) return json({ error: "membership_check_failed" }, 500);
 
-  const roleCodes = [...new Set((memberships ?? [])
+  const assignedRoleCodes = [...new Set((memberships ?? [])
     .map((item) => String(item.membership_role_code))
     .filter(Boolean))];
+  let activeRoleCodes: string[] = [];
+  if (assignedRoleCodes.length > 0) {
+    const { data, error } = await admin
+      .from("metra_role_catalogue")
+      .select("role_code")
+      .eq("is_active", true)
+      .in("role_code", assignedRoleCodes);
+    if (error) return json({ error: "role_catalogue_check_failed" }, 500);
+    activeRoleCodes = (data ?? []).map((item) => String(item.role_code));
+  }
+
   let rolePermissions: string[] = [];
-  if (roleCodes.length > 0) {
+  if (activeRoleCodes.length > 0) {
     const { data, error } = await admin
       .from("metra_role_permissions")
       .select("permission_code")
-      .in("role_code", roleCodes);
+      .in("role_code", activeRoleCodes);
     if (error) return json({ error: "role_permission_check_failed" }, 500);
     rolePermissions = (data ?? []).map((item) => String(item.permission_code));
   }
@@ -114,10 +125,12 @@ Deno.serve(async (request: Request) => {
     total: result.length,
     with_coordinates: result.filter((station) => station.latitude !== null).length,
     access: {
-      memberships: (memberships ?? []).map((item) => ({
-        authority_id: item.authority_id,
-        role_code: item.membership_role_code,
-      })),
+      memberships: (memberships ?? [])
+        .filter((item) => activeRoleCodes.includes(String(item.membership_role_code)))
+        .map((item) => ({
+          authority_id: item.authority_id,
+          role_code: item.membership_role_code,
+        })),
       permissions: effectivePermissions,
     },
     generated_at: now,
