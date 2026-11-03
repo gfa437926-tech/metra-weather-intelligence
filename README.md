@@ -8,7 +8,13 @@ flutter pub get
 flutter run --dart-define=SUPABASE_URL=https://tbdnklyxjvbrilvnwgmq.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
-Use only the publishable key in client applications. Never include a Supabase secret or service-role key in Flutter or source control.
+Use only the Supabase publishable key in client applications. Never include a Supabase secret or service-role key in Flutter or source control.
+
+## Web release
+```bash
+flutter build web --release --dart-define=SUPABASE_URL=https://tbdnklyxjvbrilvnwgmq.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+The web build is generated in `build/web`. GitHub Actions uploads a CI artifact named `metra-web-release` after analysis and tests pass. The artifact is a build output, not an automatically hosted public website.
 
 ## Supabase station directory
 - Supabase initialization and email/password sign-in are enabled when compile-time configuration is provided.
@@ -25,8 +31,20 @@ supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 ```
 Keep JWT verification enabled.
 
-## Data integrity
-No database schema or data changes were made by this integration. The legacy database remains untouched. The station map now uses OpenStreetMap tiles and renders all returned station coordinates with distinct classic/automatic symbols. Unlocated stations remain in the directory but naturally have no map marker. The home screen readings and radar layers remain placeholders, not live weather or radar data.
+## Data integrity and current integrations
+- The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
+- Station catalogue records and coordinates are read from the new Supabase project through the authenticated Edge Function.
+- The map uses OpenStreetMap tiles. Overlapping identical coordinates are grouped so all associated station records remain discoverable.
+- Official weather alerts, station-specific telemetry and radar/precipitation/temperature/wind map layers are not yet connected; the UI reports this rather than inventing data.
+- Station approval and operational statuses are displayed from stored values. Pending/unverified stations are not presented as operational.
+
+## Database safety
+No schema or data changes were made to the new database during the current integration work. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
 ## CI
-GitHub Actions runs `flutter pub get`, `flutter analyze lib`, and `flutter test`.
+GitHub Actions runs:
+1. `flutter pub get`
+2. `flutter analyze lib`
+3. `flutter test`
+4. `flutter build web --release`
+5. Uploads `build/web` as the `metra-web-release` artifact.
