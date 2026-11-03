@@ -161,6 +161,14 @@ class _MapPageState extends State<MapPage> {
         },
       ),
       const SizedBox(height: 8),
+      Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(
+        onPressed: metraSupabaseClient == null ? null : () => setState(
+          () => future = StationDirectoryService(metraSupabaseClient!).fetchStations(),
+        ),
+        icon: const Icon(Icons.refresh),
+        label: const Text('تحديث مواقع المحطات'),
+      )),
+      const SizedBox(height: 8),
       const Text('الخريطة الأساسية من OpenStreetMap. طبقات الرادار والأمطار والحرارة والرياح لم تُربط بعد.',
         style: TextStyle(color: Colors.blueGrey, fontSize: 11)),
     ]),
