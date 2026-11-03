@@ -245,7 +245,18 @@ class _MapPageState extends State<MapPage> {
                       ),
                     );
                   }).toList(growable: false);
-                  final bounds = LatLngBounds.fromPoints(stationPoints);
+                  final rawBounds = LatLngBounds.fromPoints(stationPoints);
+                  const epsilon = 0.01;
+                  final south = rawBounds.south;
+                  final north = rawBounds.north;
+                  final west = rawBounds.west;
+                  final east = rawBounds.east;
+                  final bounds = LatLngBounds(
+                    LatLng(south == north ? south - epsilon : south,
+                      west == east ? west - epsilon : west),
+                    LatLng(south == north ? north + epsilon : north,
+                      west == east ? east + epsilon : east),
+                  );
                   return FlutterMap(
                     options: MapOptions(
                       initialCameraFit: CameraFit.bounds(
@@ -274,6 +285,7 @@ class _MapPageState extends State<MapPage> {
       Wrap(spacing: 14, runSpacing: 8, children: const [
         _MapLegend(color: Color(0xFFD28A19), label: 'محطة كلاسيكية'),
         _MapLegend(color: blue, label: 'محطة آلية'),
+        _MapLegend(color: navy, label: 'مواقع مشتركة'),
       ]),
       const SizedBox(height: 12),
       FutureBuilder<List<StationRecord>>(
