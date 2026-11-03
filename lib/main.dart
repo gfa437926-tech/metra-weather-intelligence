@@ -119,7 +119,7 @@ class _GridMetricState extends State<GridMetric> {
  @override Widget build(BuildContext context)=>FutureBuilder<WeatherSnapshot>(
   future:future,
   builder:(context,snapshot){
-   if(snapshot.connectionState==ConnectionState.waiting)return const Padding(padding:EdgeInsets.all(24),child Center(child:CircularProgressIndicator()));
+   if(snapshot.connectionState==ConnectionState.waiting)return const Padding(padding:EdgeInsets.all(24),child:Center(child:CircularProgressIndicator()));
    if(snapshot.hasError||snapshot.data==null)return Container(width:double.infinity,padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Row(children:[const Expanded(child:Text('تعذر تحميل مؤشرات الطقس الحية',style:TextStyle(color:Colors.blueGrey,fontSize:12))),TextButton(onPressed:refresh,child:const Text('إعادة المحاولة'))]));
    final d=snapshot.data!;
    return Column(children:[
