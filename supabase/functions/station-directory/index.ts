@@ -50,7 +50,7 @@ Deno.serve(async (request: Request) => {
   const ids = stations.map((station) => String(station.id));
   const coordinateMap = new Map<string, { latitude: number; longitude: number }>();
   // PostgREST URL limits vary; keep each station-coordinate lookup bounded.
-  for ( (let offset = 0; offset < ids.length; offset += 200) {
+  for (let offset = 0; offset < ids.length; offset += 200) {
     const batch = ids.slice(offset, offset + 200);
     const { data: coordinates, error: coordinateError } = await admin
       .from("station_coordinates")
