@@ -207,7 +207,7 @@ class _MapPageState extends State<MapPage> {
                     point: LatLng(station.latitude!, station.longitude!),
                     width: 44, height: 54,
                     child: Tooltip(
-                      message: '${station.name} • ${station.typeLabel}',
+                      message: '${station.name} • ${station.typeLabel} • ${station.approvalLabel} • ${station.operationalLabel}',
                       child: Icon(
                         station.isClassic ? Icons.location_on : Icons.sensors,
                         size: 38,

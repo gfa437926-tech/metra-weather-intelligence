@@ -13,12 +13,25 @@ class StationRecord {
       longitude! >= -180 && longitude! <= 180;
   bool get isClassic => type.toLowerCase() == 'classic';
   String get typeLabel => isClassic ? 'كلاسيكية' : 'آلية';
+
   String get approvalLabel {
-    switch (approvalStatus) {
+    switch (approvalStatus.toLowerCase()) {
       case 'approved': return 'معتمدة';
       case 'rejected': return 'مرفوضة';
       case 'changes_requested': return 'تحتاج إلى تعديل';
-      default: return 'بانتظار الاعتماد';
+      case 'pending': return 'بانتظار الاعتماد';
+      default: return 'حالة الاعتماد غير معروفة';
+    }
+  }
+
+  String get operationalLabel {
+    switch (operationalStatus.toLowerCase()) {
+      case 'active': return 'فعالة';
+      case 'inactive': return 'متوقفة';
+      case 'suspended': return 'معلّقة';
+      case 'decommissioned': return 'خارج الخدمة';
+      case 'unverified': return 'غير متحقق منها';
+      default: return 'حالة التشغيل غير معروفة';
     }
   }
 
