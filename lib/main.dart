@@ -467,7 +467,7 @@ class _StationsPageState extends State<StationsPage> {
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       Text(station.approvalLabel, style: TextStyle(fontSize: 10,
                         color: station.approvalStatus == 'approved' ? Colors.green : Colors.orange.shade800)),
-                      Text(station.operationalStatus == 'active' ? 'فعالة' : 'غير متحقق',
+                      Text(station.operationalLabel,
                         style: const TextStyle(fontSize: 9, color: Colors.blueGrey)),
                     ]),
                   ]),
