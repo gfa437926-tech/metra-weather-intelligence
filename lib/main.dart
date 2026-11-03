@@ -411,33 +411,73 @@ class AlertsPage extends StatelessWidget {
     ),
   );
 }
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool signingOut = false;
+
+  Future<void> signOut() async {
+    final client = metraSupabaseClient;
+    if (client == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تسجيل الخروج متاح بعد تهيئة Supabase.')),
+      );
+      return;
+    }
+    setState(() => signingOut = true);
+    try {
+      await client.auth.signOut();
+    } on AuthException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر تسجيل الخروج: ${e.message}')),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر تسجيل الخروج. تحقق من الاتصال.')),
+      );
+    } finally {
+      if (mounted) setState(() => signingOut = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     title: 'الإعدادات',
     subtitle: 'تخصيص تجربة METRA',
-    child: Column(
-      children: [
-        for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
-          Padding(
-            padding: const EdgeInsets.only(bottom: 9),
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                leading: const Icon(Icons.tune, color: blue),
-                title: Text(s),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$s: سيتم تفعيل الخيار في مرحلة الربط')),
-                ),
+    child: Column(children: [
+      for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
+        Padding(
+          padding: const EdgeInsets.only(bottom: 9),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: const Icon(Icons.tune, color: blue),
+              title: Text(s),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$s: لم يتم ربط هذا الخيار بعد')),
               ),
             ),
           ),
-      ],
-    ),
+        ),
+      if (metraSupabaseClient != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: SizedBox(width: double.infinity, child: OutlinedButton.icon(
+            onPressed: signingOut ? null : signOut,
+            icon: signingOut
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.logout),
+            label: Text(signingOut ? 'جارٍ تسجيل الخروج' : 'تسجيل الخروج'),
+          )),
+        ),
+    ]),
   );
 }
 class PageFrame extends StatelessWidget {const PageFrame({super.key,required this.title,required this.subtitle,required this.child});final String title,subtitle;final Widget child;@override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.fromLTRB(18,22,18,30),children:[const Header(),const SizedBox(height:25),Text(title,style:const TextStyle(color:ink,fontSize:25,fontWeight:FontWeight.bold)),const SizedBox(height:5),Text(subtitle,style:const TextStyle(color:Colors.blueGrey,fontSize:12)),const SizedBox(height:22),child]);}
