@@ -15,7 +15,6 @@ Future<void> main() async {
   runApp(const MetraWeatherApp());
 }
 
-void main() => runApp(const MetraWeatherApp());
 
 const ink = Color(0xFF102448), navy = Color(0xFF071A43), blue = Color(0xFF1769D2), sky = Color(0xFF46B9F5), canvas = Color(0xFFF3F6FC);
 const stations = ['محطة الرياض', 'محطة جدة', 'محطة الدمام', 'محطة تبوك', 'محطة أبها', 'محطة القصيم'];
