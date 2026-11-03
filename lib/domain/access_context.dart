@@ -13,15 +13,27 @@ class AccessContext {
     final data = Map<String, dynamic>.from(access);
     final memberships = data['memberships'];
     final permissions = data['permissions'];
+
+    final roles = <String>{};
+    if (memberships is List) {
+      for (final item in memberships.whereType<Map>()) {
+        final role = item['role_code'];
+        if (role is String && role.isNotEmpty) roles.add(role);
+      }
+    }
+
+    final permissionSet = <String>{};
+    if (permissions is List) {
+      for (final permission in permissions) {
+        if (permission is String && permission.isNotEmpty) {
+          permissionSet.add(permission);
+        }
+      }
+    }
+
     return AccessContext(
-      roleCodes: memberships is List
-          ? memberships.whereType<Map>()
-              .map((item) => item['role_code'])
-              .whereType<String>().toSet().toList()..sort()
-          : const [],
-      permissionCodes: permissions is List
-          ? permissions.whereType<String>().toSet().toList()..sort()
-          : const [],
+      roleCodes: roles.toList()..sort(),
+      permissionCodes: permissionSet.toList()..sort(),
     );
   }
 }
