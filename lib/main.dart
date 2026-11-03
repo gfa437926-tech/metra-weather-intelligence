@@ -43,7 +43,7 @@ class HomePage extends StatelessWidget { const HomePage({super.key});
  @override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.fromLTRB(18,18,18,28),children:[
  const Header(),const SizedBox(height:12),Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:9),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(12)),child:const Row(children:[Icon(Icons.info_outline,color:Color(0xFF9A6700),size:16),SizedBox(width:7),Expanded(child:Text('واجهة تجريبية — القيم المعروضة ليست قراءات طقس حية',style:TextStyle(color:Color(0xFF855B00),fontSize:11,fontWeight:FontWeight.w600)))])),const SizedBox(height:20),const WeatherHero(),const SizedBox(height:20),
  const SectionTitle('توقعات الساعات القادمة','24 ساعة'),
- SizedBox(height:112,child:ListView(scrollDirection:Axis.horizontal,children:const [Hour('الآن','☀','29°',selected:true),Hour('10 ص','☀','30°'),Hour('12 م','⛅','32°'),Hour('3 م','☀','34°'),Hour('6 م','🌤','30°'),Hour('9 م','☾','26°')])),
+ const HourlyForecastStrip(),
  const SizedBox(height:22),const SectionTitle('مؤشرات الطقس','تفاصيل'),
  const GridMetric(),const SizedBox(height:20),const SectionTitle('نظرة على الخريطة','فتح'),
  const MapPreview(),const SizedBox(height:20),const SectionTitle('المحطات القريبة','عرض المحطات'),
@@ -87,6 +87,26 @@ class _WeatherHeroState extends State<WeatherHero> {
 }
 class HeroMetric extends StatelessWidget {const HeroMetric(this.icon,this.value,this.label,{super.key});final IconData icon;final String value,label;@override Widget build(BuildContext context)=>Expanded(child:Column(children:[Icon(icon,color:sky,size:19),const SizedBox(height:7),Text(value,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold,fontSize:12)),Text(label,style:const TextStyle(color:Color(0xFFBBD4F8),fontSize:9))]));}
 class SectionTitle extends StatelessWidget {const SectionTitle(this.title,this.action,{super.key});final String title,action;@override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Row(children:[Expanded(child:Text(title,style:const TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.bold))),Text(action,style:const TextStyle(color:blue,fontSize:11,fontWeight:FontWeight.w600))]));}
+class HourlyForecastStrip extends StatefulWidget {
+ const HourlyForecastStrip({super.key});
+ @override State<HourlyForecastStrip> createState()=>_HourlyForecastStripState();
+}
+class _HourlyForecastStripState extends State<HourlyForecastStrip> {
+ late Future<List<HourlyForecast>> future;
+ @override void initState(){super.initState();future=WeatherService().fetchHourlyRiyadh();}
+ @override Widget build(BuildContext context)=>SizedBox(height:112,child:FutureBuilder<List<HourlyForecast>>(
+  future:future,builder:(context,snapshot){
+   if(snapshot.connectionState==ConnectionState.waiting)return const Center(child:CircularProgressIndicator());
+   if(snapshot.hasError)return const Center(child:Text('التوقعات الساعية غير متاحة حالياً',style:TextStyle(color:Colors.blueGrey,fontSize:12)));
+   final items=snapshot.data??const <HourlyForecast>[];
+   if(items.isEmpty)return const Center(child:Text('لا توجد توقعات متاحة'));
+   return ListView(scrollDirection:Axis.horizontal,children:[for(var i=0;i<items.length;i++) Container(width:68,margin:const EdgeInsets.only(left:8),padding:const EdgeInsets.symmetric(vertical:12),decoration:BoxDecoration(color:i==0?blue:Colors.white,borderRadius:BorderRadius.circular(19),boxShadow:[BoxShadow(color:ink.withOpacity(.04),blurRadius:9)]),child:Column(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+    Text(i==0?'الآن':items[i].label,style:TextStyle(color:i==0?Colors.white:Colors.blueGrey,fontSize:10)),
+    Text(items[i].symbol,style:const TextStyle(fontSize:24)),
+    Text('${items[i].temperature.round()}°',style:TextStyle(color:i==0?Colors.white:ink,fontWeight:FontWeight.bold))
+   ]))]);
+  }));
+}
 class Hour extends StatelessWidget {const Hour(this.time,this.symbol,this.temp,{this.selected=false,super.key});final String time,symbol,temp;final bool selected;@override Widget build(BuildContext context)=>Container(width:68,margin:const EdgeInsets.only(left:8),padding:const EdgeInsets.symmetric(vertical:12),decoration:BoxDecoration(color:selected?blue:Colors.white,borderRadius:BorderRadius.circular(19),boxShadow:[BoxShadow(color:ink.withOpacity(.04),blurRadius:9)]),child:Column(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(time,style:TextStyle(color:selected?Colors.white:Colors.blueGrey,fontSize:10)),Text(symbol,style:const TextStyle(fontSize:24)),Text(temp,style:TextStyle(color:selected?Colors.white:ink,fontWeight:FontWeight.bold))]));}
 class GridMetric extends StatelessWidget {const GridMetric({super.key});@override Widget build(BuildContext context)=>GridView.count(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),crossAxisCount:2,mainAxisSpacing:10,crossAxisSpacing:10,childAspectRatio:1.55,children:const [MetricTile(Icons.thermostat,'درجة الحرارة','29°C','الشعور 31°',Color(0xFFFF9A48)),MetricTile(Icons.air,'سرعة الرياح','12 km/h','شمالية غربية',Color(0xFF27B6D7)),MetricTile(Icons.water_drop,'الرطوبة','62%','مستوى متوسط',Color(0xFF4388F6)),MetricTile(Icons.compress,'الضغط الجوي','1012 hPa','مستقر',Color(0xFF8872E8))]);}
 class MetricTile extends StatelessWidget {const MetricTile(this.icon,this.title,this.value,this.note,this.color,{super.key});final IconData icon;final String title,value,note;final Color color;@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Row(children:[CircleAvatar(radius:15,backgroundColor:color.withOpacity(.12),child:Icon(icon,color:color,size:17)),const SizedBox(width:7),Expanded(child:Text(title,style:const TextStyle(color:Colors.blueGrey,fontSize:11)))]),Text(value,style:const TextStyle(color:ink,fontSize:18,fontWeight:FontWeight.bold)),Text(note,style:const TextStyle(color:Colors.blueGrey,fontSize:9))]));}
