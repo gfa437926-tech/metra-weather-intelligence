@@ -217,10 +217,15 @@ class _MapPageState extends State<MapPage> {
                     final members = entry.value;
                     final first = members.first;
                     final classicCount = members.where((s) => s.isClassic).length;
-                    final automaticCount = members.length - classicCount;
-                    final color = classicCount > 0 && automaticCount == 0
+                    final automaticCount = members.where((s) => s.isAutomatic).length;
+                    final unknownCount = members.length - classicCount - automaticCount;
+                    final color = classicCount > 0 && automaticCount == 0 && unknownCount == 0
                         ? const Color(0xFFD28A19)
-                        : automaticCount > 0 && classicCount == 0 ? blue : navy;
+                        : automaticCount > 0 && classicCount == 0 && unknownCount == 0
+                            ? blue
+                            : (classicCount > 0 || automaticCount > 0)
+                                ? navy
+                                : Colors.blueGrey;
                     return Marker(
                       point: LatLng(first.latitude!, first.longitude!),
                       width: 54,
@@ -238,7 +243,13 @@ class _MapPageState extends State<MapPage> {
                           ),
                           alignment: Alignment.center,
                           child: Text(
-                            members.length > 1 ? '${members.length}' : (first.isClassic ? 'ك' : 'آ'),
+                            members.length > 1
+                                ? '${members.length}'
+                                : first.isClassic
+                                    ? 'ك'
+                                    : first.isAutomatic
+                                        ? 'آ'
+                                        : '?',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ),
@@ -527,9 +538,23 @@ class _StationsPageState extends State<StationsPage> {
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17)),
                   child: Row(children: [
                     CircleAvatar(
-                      backgroundColor: station.isClassic ? const Color(0xFFFFF0DA) : const Color(0xFFE7F1FF),
-                      child: Icon(station.isClassic ? Icons.home_work_outlined : Icons.sensors,
-                        color: station.isClassic ? const Color(0xFFB97716) : blue)),
+                      backgroundColor: station.isClassic
+                          ? const Color(0xFFFFF0DA)
+                          : station.isAutomatic
+                              ? const Color(0xFFE7F1FF)
+                              : const Color(0xFFECEFF3),
+                      child: Icon(
+                        station.isClassic
+                            ? Icons.home_work_outlined
+                            : station.isAutomatic
+                                ? Icons.sensors
+                                : Icons.device_unknown,
+                        color: station.isClassic
+                            ? const Color(0xFFB97716)
+                            : station.isAutomatic
+                                ? blue
+                                : Colors.blueGrey,
+                      )),
                     const SizedBox(width: 11),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(station.name, style: const TextStyle(fontWeight: FontWeight.bold, color: ink)),
