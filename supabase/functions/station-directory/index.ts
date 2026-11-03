@@ -33,29 +33,39 @@ Deno.serve(async (request: Request) => {
     return json({ error: "account_not_active", state: account?.account_state ?? "pending" }, 403);
   }
 
-  const { data: stations, error: stationError } = await admin
-    .from("station_catalogue")
-    .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,is_demo")
-    .eq("is_demo", false).order("name_ar", { ascending: true }).range(0, 999);
-  if (stationError) return json({ error: "station_query_failed" }, 500);
+  // Fetch in pages so the directory is not silently truncated at 1,000 records.
+  const stations: Record<string, unknown>[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error: stationError } = await admin
+      .from("station_catalogue")
+      .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,is_demo")
+      .eq("is_demo", false).order("name_ar", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (stationError) return json({ error: "station_query_failed" }, 500);
+    stations.push(...(page ?? []));
+    if (!page || page.length < pageSize) break;
+  }
 
-  const ids = (stations ?? []).map((station) => station.id);
+  const ids = stations.map((station) => String(station.id));
   const coordinateMap = new Map<string, { latitude: number; longitude: number }>();
-  if (ids.length) {
+  // PostgREST URL limits vary; keep each station-coordinate lookup bounded.
+  for ( (let offset = 0; offset < ids.length; offset += 200) {
+    const batch = ids.slice(offset, offset + 200);
     const { data: coordinates, error: coordinateError } = await admin
       .from("station_coordinates")
       .select("station_id,latitude,longitude,valid_from")
-      .in("station_id", ids).is("valid_to", null)
+      .in("station_id", batch).is("valid_to", null)
       .order("valid_from", { ascending: false });
     if (coordinateError) return json({ error: "coordinate_query_failed" }, 500);
     for (const item of coordinates ?? []) {
-      if (!coordinateMap.has(item.station_id)) coordinateMap.set(item.station_id, {
+      if (!coordinateMap.has(String(item.station_id))) coordinateMap.set(String(item.station_id), {
         latitude: Number(item.latitude), longitude: Number(item.longitude),
       });
     }
   }
 
-  const result = (stations ?? []).map((station) => ({
+  const result = stations.map((station) => ({
     ...station, ...(coordinateMap.get(station.id) ?? { latitude: null, longitude: null }),
   }));
   return json({
