@@ -134,9 +134,33 @@ class _GridMetricState extends State<GridMetric> {
   });
 }
 class MetricTile extends StatelessWidget {const MetricTile(this.icon,this.title,this.value,this.note,this.color,{super.key});final IconData icon;final String title,value,note;final Color color;@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Row(children:[CircleAvatar(radius:15,backgroundColor:color.withOpacity(.12),child:Icon(icon,color:color,size:17)),const SizedBox(width:7),Expanded(child:Text(title,style:const TextStyle(color:Colors.blueGrey,fontSize:11)))]),Text(value,style:const TextStyle(color:ink,fontSize:18,fontWeight:FontWeight.bold)),Text(note,style:const TextStyle(color:Colors.blueGrey,fontSize:9))]));}
-class MapPreview extends StatelessWidget {const MapPreview({super.key});@override Widget build(BuildContext context)=>Container(height:175,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(24),gradient:const LinearGradient(colors:[Color(0xFFD4E4D6),Color(0xFF9BC6C4),Color(0xFFB7D5A6)])),child:Stack(children:[Positioned(left:-30,top:45,child:Transform.rotate(angle:-.3,child:Container(width:300,height:48,color:Colors.white.withOpacity(.4)))),Positioned(left:75,top:40,child:const MapDot()),Positioned(right:85,top:80,child:const MapDot()),Positioned(left:180,bottom:30,child:const MapDot()),const Center(child:Icon(Icons.layers_outlined,color:Colors.white,size:38)),Positioned(right:12,bottom:12,child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:7),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:const Text('عرض الرادار',style:TextStyle(color:navy,fontSize:11,fontWeight:FontWeight.bold))))]));}
-class MapDot extends StatelessWidget {const MapDot({super.key});@override Widget build(BuildContext context)=>Container(width:24,height:24,decoration:BoxDecoration(color:blue,borderRadius:BorderRadius.circular(9),border:Border.all(color:Colors.white,width:2),boxShadow:[BoxShadow(color:blue.withOpacity(.4),blurRadius:8)]),child:const Icon(Icons.location_on,color:Colors.white,size:14));}
-class StationStrip extends StatelessWidget {const StationStrip({super.key});@override Widget build(BuildContext context)=>SizedBox(height:94,child:ListView(scrollDirection:Axis.horizontal,children:stations.take(4).map((s)=>Container(width:150,margin:const EdgeInsets.only(left:9),padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Row(children:[Icon(Icons.sensors,color:blue,size:17),Spacer(),Icon(Icons.circle,color:Colors.green,size:8)]),const Spacer(),Text(s,style:const TextStyle(color:ink,fontWeight:FontWeight.bold,fontSize:12)),const Text('بيانات واجهة تجريبية',style:TextStyle(color:Colors.blueGrey,fontSize:9))]))).toList()));}
+class MapPreview extends StatelessWidget {
+ const MapPreview({super.key});
+ @override Widget build(BuildContext context)=>Container(
+  width:double.infinity,padding:const EdgeInsets.all(18),
+  decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22)),
+  child:Row(children:[
+   Container(width:54,height:54,decoration:BoxDecoration(color:const Color(0xFFE7F1FF),borderRadius:BorderRadius.circular(16)),child:const Icon(Icons.map_outlined,color:blue,size:28)),
+   const SizedBox(width:12),
+   const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text('خريطة مواقع المحطات',style:TextStyle(color:ink,fontWeight:FontWeight.bold)),
+    SizedBox(height:5),
+    Text('تعرض الخريطة الرئيسية المحطات المسجلة ذات الإحداثيات الموثقة. طبقة الرادار لم تُربط بعد.',style:TextStyle(color:Colors.blueGrey,fontSize:11)),
+   ])),
+  ]),
+ );
+}
+class StationStrip extends StatelessWidget {
+ const StationStrip({super.key});
+ @override Widget build(BuildContext context)=>Container(
+  width:double.infinity,padding:const EdgeInsets.all(17),
+  decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20)),
+  child:const Row(children:[
+   Icon(Icons.sensors_outlined,color:blue,size:27),SizedBox(width:11),
+   Expanded(child:Text('يُعرض الدليل الموحد للمحطات الكلاسيكية والآلية في صفحة المحطات من قاعدة البيانات، دون إدراج أسماء أو مواقع تجريبية هنا.',style:TextStyle(color:Colors.blueGrey,fontSize:11))),
+  ]),
+ );
+}
 class AlertBanner extends StatelessWidget {const AlertBanner({super.key});@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(17),decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),gradient:const LinearGradient(colors:[navy,Color(0xFF174C98)])),child:const Row(children:[Icon(Icons.notifications_active_outlined,color:Color(0xFFFFD66B),size:28),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('التنبيهات الذكية',style:TextStyle(color:Colors.white,fontWeight:FontWeight.bold)),Text('ابقَ على اطلاع بتغيرات الطقس',style:TextStyle(color:Color(0xFFBFD7FA),fontSize:11))])),Icon(Icons.chevron_left,color:Colors.white)]));}
 
 class MapPage extends StatefulWidget {
