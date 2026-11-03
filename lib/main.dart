@@ -41,7 +41,7 @@ class _ShellState extends State<Shell> {
 
 class HomePage extends StatelessWidget { const HomePage({super.key});
  @override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.fromLTRB(18,18,18,28),children:[
- const Header(),const SizedBox(height:12),Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:9),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(12)),child:const Row(children:[Icon(Icons.info_outline,color:Color(0xFF9A6700),size:16),SizedBox(width:7),Expanded(child:Text('واجهة تجريبية — القيم المعروضة ليست قراءات طقس حية',style:TextStyle(color:Color(0xFF855B00),fontSize:11,fontWeight:FontWeight.w600)))])),const SizedBox(height:20),const WeatherHero(),const SizedBox(height:20),
+ const Header(),const SizedBox(height:12),Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:9),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(12)),child:const Row(children:[Icon(Icons.info_outline,color:Color(0xFF9A6700),size:16),SizedBox(width:7),Expanded(child:Text('الطقس الحالي والتوقعات من Open-Meteo؛ دليل المحطات والتنبيهات وبعض بطاقات العرض لم تُربط بمصادر تشغيلية بعد',style:TextStyle(color:Color(0xFF855B00),fontSize:11,fontWeight:FontWeight.w600)))])),const SizedBox(height:20),const WeatherHero(),const SizedBox(height:20),
  const SectionTitle('توقعات الساعات القادمة','24 ساعة'),
  const HourlyForecastStrip(),
  const SizedBox(height:22),const SectionTitle('مؤشرات الطقس','تفاصيل'),
@@ -108,7 +108,31 @@ class _HourlyForecastStripState extends State<HourlyForecastStrip> {
   }));
 }
 class Hour extends StatelessWidget {const Hour(this.time,this.symbol,this.temp,{this.selected=false,super.key});final String time,symbol,temp;final bool selected;@override Widget build(BuildContext context)=>Container(width:68,margin:const EdgeInsets.only(left:8),padding:const EdgeInsets.symmetric(vertical:12),decoration:BoxDecoration(color:selected?blue:Colors.white,borderRadius:BorderRadius.circular(19),boxShadow:[BoxShadow(color:ink.withOpacity(.04),blurRadius:9)]),child:Column(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Text(time,style:TextStyle(color:selected?Colors.white:Colors.blueGrey,fontSize:10)),Text(symbol,style:const TextStyle(fontSize:24)),Text(temp,style:TextStyle(color:selected?Colors.white:ink,fontWeight:FontWeight.bold))]));}
-class GridMetric extends StatelessWidget {const GridMetric({super.key});@override Widget build(BuildContext context)=>GridView.count(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),crossAxisCount:2,mainAxisSpacing:10,crossAxisSpacing:10,childAspectRatio:1.55,children:const [MetricTile(Icons.thermostat,'درجة الحرارة','29°C','الشعور 31°',Color(0xFFFF9A48)),MetricTile(Icons.air,'سرعة الرياح','12 km/h','شمالية غربية',Color(0xFF27B6D7)),MetricTile(Icons.water_drop,'الرطوبة','62%','مستوى متوسط',Color(0xFF4388F6)),MetricTile(Icons.compress,'الضغط الجوي','1012 hPa','مستقر',Color(0xFF8872E8))]);}
+class GridMetric extends StatefulWidget {
+ const GridMetric({super.key});
+ @override State<GridMetric> createState()=>_GridMetricState();
+}
+class _GridMetricState extends State<GridMetric> {
+ late Future<WeatherSnapshot> future;
+ @override void initState(){super.initState();future=WeatherService().fetchRiyadh();}
+ void refresh()=>setState(()=>future=WeatherService().fetchRiyadh());
+ @override Widget build(BuildContext context)=>FutureBuilder<WeatherSnapshot>(
+  future:future,
+  builder:(context,snapshot){
+   if(snapshot.connectionState==ConnectionState.waiting)return const Padding(padding:EdgeInsets.all(24),child Center(child:CircularProgressIndicator()));
+   if(snapshot.hasError||snapshot.data==null)return Container(width:double.infinity,padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Row(children:[const Expanded(child:Text('تعذر تحميل مؤشرات الطقس الحية',style:TextStyle(color:Colors.blueGrey,fontSize:12))),TextButton(onPressed:refresh,child:const Text('إعادة المحاولة'))]));
+   final d=snapshot.data!;
+   return Column(children:[
+    Align(alignment:Alignment.centerLeft,child:TextButton.icon(onPressed:refresh,icon:const Icon(Icons.refresh,size:16),label:const Text('تحديث المؤشرات'))),
+    GridView.count(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),crossAxisCount:2,mainAxisSpacing:10,crossAxisSpacing:10,childAspectRatio:1.55,children:[
+     MetricTile(Icons.thermostat,'درجة الحرارة','${d.temperature.round()}°C','المحسوسة ${d.apparentTemperature.round()}°',const Color(0xFFFF9A48)),
+     MetricTile(Icons.air,'سرعة الرياح','${d.windSpeed.toStringAsFixed(1)} km/h','سرعة الرياح عند 10 أمتار',const Color(0xFF27B6D7)),
+     MetricTile(Icons.water_drop,'الرطوبة','${d.humidity.round()}%','الرطوبة النسبية',const Color(0xFF4388F6)),
+     MetricTile(Icons.compress,'الضغط الجوي','${d.pressure.round()} hPa','الضغط السطحي',const Color(0xFF8872E8)),
+    ]),
+   ]);
+  });
+}
 class MetricTile extends StatelessWidget {const MetricTile(this.icon,this.title,this.value,this.note,this.color,{super.key});final IconData icon;final String title,value,note;final Color color;@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[Row(children:[CircleAvatar(radius:15,backgroundColor:color.withOpacity(.12),child:Icon(icon,color:color,size:17)),const SizedBox(width:7),Expanded(child:Text(title,style:const TextStyle(color:Colors.blueGrey,fontSize:11)))]),Text(value,style:const TextStyle(color:ink,fontSize:18,fontWeight:FontWeight.bold)),Text(note,style:const TextStyle(color:Colors.blueGrey,fontSize:9))]));}
 class MapPreview extends StatelessWidget {const MapPreview({super.key});@override Widget build(BuildContext context)=>Container(height:175,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(borderRadius:BorderRadius.circular(24),gradient:const LinearGradient(colors:[Color(0xFFD4E4D6),Color(0xFF9BC6C4),Color(0xFFB7D5A6)])),child:Stack(children:[Positioned(left:-30,top:45,child:Transform.rotate(angle:-.3,child:Container(width:300,height:48,color:Colors.white.withOpacity(.4)))),Positioned(left:75,top:40,child:const MapDot()),Positioned(right:85,top:80,child:const MapDot()),Positioned(left:180,bottom:30,child:const MapDot()),const Center(child:Icon(Icons.layers_outlined,color:Colors.white,size:38)),Positioned(right:12,bottom:12,child:Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:7),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:const Text('عرض الرادار',style:TextStyle(color:navy,fontSize:11,fontWeight:FontWeight.bold))))]));}
 class MapDot extends StatelessWidget {const MapDot({super.key});@override Widget build(BuildContext context)=>Container(width:24,height:24,decoration:BoxDecoration(color:blue,borderRadius:BorderRadius.circular(9),border:Border.all(color:Colors.white,width:2),boxShadow:[BoxShadow(color:blue.withOpacity(.4),blurRadius:8)]),child:const Icon(Icons.location_on,color:Colors.white,size:14));}
