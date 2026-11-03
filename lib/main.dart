@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'data/station_directory_service.dart';
 import 'domain/station_record.dart';
 
@@ -64,34 +66,135 @@ class MapDot extends StatelessWidget {const MapDot({super.key});@override Widget
 class StationStrip extends StatelessWidget {const StationStrip({super.key});@override Widget build(BuildContext context)=>SizedBox(height:94,child:ListView(scrollDirection:Axis.horizontal,children:stations.take(4).map((s)=>Container(width:150,margin:const EdgeInsets.only(left:9),padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Row(children:[Icon(Icons.sensors,color:blue,size:17),Spacer(),Icon(Icons.circle,color:Colors.green,size:8)]),const Spacer(),Text(s,style:const TextStyle(color:ink,fontWeight:FontWeight.bold,fontSize:12)),const Text('رصد آلي • متصل',style:TextStyle(color:Colors.blueGrey,fontSize:9))]))).toList()));}
 class AlertBanner extends StatelessWidget {const AlertBanner({super.key});@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(17),decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),gradient:const LinearGradient(colors:[navy,Color(0xFF174C98)])),child:const Row(children:[Icon(Icons.notifications_active_outlined,color:Color(0xFFFFD66B),size:28),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('التنبيهات الذكية',style:TextStyle(color:Colors.white,fontWeight:FontWeight.bold)),Text('ابقَ على اطلاع بتغيرات الطقس',style:TextStyle(color:Color(0xFFBFD7FA),fontSize:11))])),Icon(Icons.chevron_left,color:Colors.white)]));}
 
-class MapPage extends StatelessWidget {
+class MapPage extends StatefulWidget {
   const MapPage({super.key});
+  @override
+  State<MapPage> createState() => _MapPageState();
+}
+
+class _MapPageState extends State<MapPage> {
+  Future<List<StationRecord>>? future;
+  @override
+  void initState() {
+    super.initState();
+    final client = metraSupabaseClient;
+    if (client != null) future = StationDirectoryService(client).fetchStations();
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     title: 'خريطة الطقس',
-    subtitle: 'الرادار والمحطات',
-    child: Column(
-      children: [
-        const MapPreview(),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: ['الرادار', 'الأمطار', 'الحرارة', 'الرياح']
-              .map((e) => Chip(label: Text(e), avatar: const Icon(Icons.layers, size: 16)))
-              .toList(),
+    subtitle: 'مواقع المحطات المسجلة ذات الإحداثيات المتاحة',
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        height: 430,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: future == null
+            ? const _MapUnavailable(message: 'فعّل إعدادات Supabase لعرض مواقع المحطات المسجلة.')
+            : FutureBuilder<List<StationRecord>>(
+                future: future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return const _MapUnavailable(message: 'تعذر تحميل مواقع المحطات. تحقق من اعتماد الحساب.');
+                  }
+                  final stations = (snapshot.data ?? const <StationRecord>[])
+                      .where((station) => station.hasCoordinates).toList(growable: false);
+                  if (stations.isEmpty) {
+                    return const _MapUnavailable(message: 'لا توجد إحداثيات متاحة للعرض ضمن الدليل.');
+                  }
+                  final markers = stations.map((station) => Marker(
+                    point: LatLng(station.latitude!, station.longitude!),
+                    width: 44, height: 54,
+                    child: Tooltip(
+                      message: '${station.name} • ${station.typeLabel}',
+                      child: Icon(
+                        station.isClassic ? Icons.location_on : Icons.sensors,
+                        size: 38,
+                        color: station.isClassic ? const Color(0xFFD28A19) : blue,
+                        shadows: const [Shadow(color: Colors.black26, blurRadius: 5, offset: Offset(0, 2))],
+                      ),
+                    ),
+                  )).toList(growable: false);
+                  final first = stations.first;
+                  return FlutterMap(
+                    options: MapOptions(
+                      initialCenter: LatLng(first.latitude!, first.longitude!),
+                      initialZoom: 5.2,
+                      interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.metra.weather_intelligence',
+                        maxNativeZoom: 19,
+                      ),
+                      MarkerLayer(markers: markers),
+                      RichAttributionWidget(
+                        attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
+                      ),
+                    ],
+                  );
+                },
+              ),
         ),
-        const SizedBox(height: 18),
-        const SectionTitle('المحطات على الخريطة', '6 محطات'),
-        const StationStrip(),
-        const Text(
-          'الخريطة في هذه النسخة واجهة توضيحية؛ سيتم ربط طبقات الرادار ومواقع المحطات لاحقاً.',
-          style: TextStyle(color: Colors.blueGrey, fontSize: 12),
-        ),
-      ],
-    ),
+      ),
+      const SizedBox(height: 12),
+      Wrap(spacing: 14, runSpacing: 8, children: const [
+        _MapLegend(color: Color(0xFFD28A19), label: 'محطة كلاسيكية'),
+        _MapLegend(color: blue, label: 'محطة آلية'),
+      ]),
+      const SizedBox(height: 12),
+      FutureBuilder<List<StationRecord>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          final records = snapshot.data!;
+          final located = records.where((station) => station.hasCoordinates).length;
+          return Text(
+            '${located} موقعاً على الخريطة من أصل ${records.length} محطة في الدليل. المحطات التي لا تملك إحداثيات لا تُحذف من الدليل.',
+            style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+          );
+        },
+      ),
+      const SizedBox(height: 8),
+      const Text('الخريطة الأساسية من OpenStreetMap. طبقات الرادار والأمطار والحرارة والرياح لم تُربط بعد.',
+        style: TextStyle(color: Colors.blueGrey, fontSize: 11)),
+    ]),
   );
 }
+
+class _MapUnavailable extends StatelessWidget {
+  const _MapUnavailable({required this.message});
+  final String message;
+  @override
+  Widget build(BuildContext context) => Container(
+    color: const Color(0xFFE8EFF8),
+    alignment: Alignment.center,
+    padding: const EdgeInsets.all(24),
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      const Icon(Icons.map_outlined, size: 42, color: navy),
+      const SizedBox(height: 12),
+      Text(message, textAlign: TextAlign.center, style: const TextStyle(color: ink)),
+    ]),
+  );
+}
+
+class _MapLegend extends StatelessWidget {
+  const _MapLegend({required this.color, required this.label});
+  final Color color;
+  final String label;
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+    Icon(Icons.location_on, color: color, size: 19),
+    const SizedBox(width: 4),
+    Text(label, style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+  ]);
+}
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
   @override

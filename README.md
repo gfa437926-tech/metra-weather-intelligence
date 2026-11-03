@@ -26,7 +26,7 @@ supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 Keep JWT verification enabled.
 
 ## Data integrity
-No database schema or data changes were made by this integration. The legacy database remains untouched. The home screen readings and illustrated map remain placeholders, not live weather or radar data.
+No database schema or data changes were made by this integration. The legacy database remains untouched. The station map now uses OpenStreetMap tiles and renders all returned station coordinates with distinct classic/automatic symbols. Unlocated stations remain in the directory but naturally have no map marker. The home screen readings and radar layers remain placeholders, not live weather or radar data.
 
 ## CI
 GitHub Actions runs `flutter pub get`, `flutter analyze lib`, and `flutter test`.
