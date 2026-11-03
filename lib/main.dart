@@ -22,7 +22,6 @@ Future<void> main() async {
 
 
 const ink = Color(0xFF102448), navy = Color(0xFF071A43), blue = Color(0xFF1769D2), sky = Color(0xFF46B9F5), canvas = Color(0xFFF3F6FC);
-const stations = ['محطة الرياض', 'محطة جدة', 'محطة الدمام', 'محطة تبوك', 'محطة أبها', 'محطة القصيم'];
 class MetraWeatherApp extends StatelessWidget {
  const MetraWeatherApp({super.key});
  @override Widget build(BuildContext context) => MaterialApp(debugShowCheckedModeBanner:false,title:'METRA Weather Intelligence',theme:ThemeData(useMaterial3:true,scaffoldBackgroundColor:canvas,colorScheme:ColorScheme.fromSeed(seedColor:blue),fontFamily:'Roboto'),home: metraSupabaseClient == null ? const Shell() : const AuthGate());
@@ -469,7 +468,7 @@ class _StationsPageState extends State<StationsPage> {
             final visible = all.where((station) {
               final typeMatches = filter == 'الكل' ||
                 (filter == 'كلاسيكية' && station.isClassic) ||
-                (filter == 'آلية' && !station.isClassic);
+                (filter == 'آلية' && station.isAutomatic);
               final needle = query.trim().toLowerCase();
               final textMatches = needle.isEmpty ||
                 station.name.toLowerCase().contains(needle) ||
@@ -477,8 +476,8 @@ class _StationsPageState extends State<StationsPage> {
               return typeMatches && textMatches;
             }).toList(growable: false);
             final withoutCoordinates = all.where((s) => !s.hasCoordinates).length;
-            final pendingApproval = all.where((s) => s.approvalStatus.toLowerCase() != 'approved').length;
-            final unverified = all.where((s) => s.operationalStatus.toLowerCase() == 'unverified').length;
+            final pendingApproval = all.where((s) => s.normalizedApprovalStatus != 'approved').length;
+            final unverified = all.where((s) => s.normalizedOperationalStatus == 'unverified').length;
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Expanded(child: Text('الدليل الموحد', style: TextStyle(color: ink, fontWeight: FontWeight.bold))),
@@ -542,7 +541,7 @@ class _StationsPageState extends State<StationsPage> {
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       Text(station.approvalLabel, style: TextStyle(fontSize: 10,
-                        color: station.approvalStatus == 'approved' ? Colors.green : Colors.orange.shade800)),
+                        color: station.normalizedApprovalStatus == 'approved' ? Colors.green : Colors.orange.shade800)),
                       Text(station.operationalLabel,
                         style: const TextStyle(fontSize: 9, color: Colors.blueGrey)),
                     ]),
