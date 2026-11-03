@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'data/station_directory_service.dart';
 import 'domain/station_record.dart';
+import 'domain/access_context.dart';
 import 'data/weather_service.dart';
 import 'domain/weather_snapshot.dart';
 
@@ -591,6 +592,16 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool signingOut = false;
+  Future<AccessContext>? accessFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final client = metraSupabaseClient;
+    if (client != null) {
+      accessFuture = StationDirectoryService(client).fetchAccessContext();
+    }
+  }
 
   Future<void> signOut() async {
     final client = metraSupabaseClient;
@@ -621,6 +632,74 @@ class _SettingsPageState extends State<SettingsPage> {
     title: 'الإعدادات',
     subtitle: 'تخصيص تجربة METRA',
     child: Column(children: [
+      if (accessFuture != null)
+        FutureBuilder<AccessContext>(
+          future: accessFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return const ListTile(
+                leading: Icon(Icons.shield_outlined, color: blue),
+                title: Text('تعذر تحميل الصلاحيات'),
+                subtitle: Text('تعذر التحقق من العضويات والصلاحيات الحالية.'),
+              );
+            }
+            final access = snapshot.data ?? const AccessContext();
+            const roleLabels = {
+              'system_admin': 'مدير النظام',
+              'observer': 'راصد جوي',
+              'station_head': 'رئيس محطة',
+              'station_auditor': 'مدقق محطة',
+              'chief_auditor': 'المدقق الرئيسي العام',
+              'network_director': 'رئيس دائرة الشبكات',
+              'statistics_director': 'رئيس دائرة الإحصاء',
+              'aftn_operator': 'مسؤول دائرة AFTN',
+            };
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    Icon(Icons.verified_user_outlined, color: blue),
+                    SizedBox(width: 8),
+                    Text('الهوية والصلاحيات',
+                      style: TextStyle(color: ink, fontWeight: FontWeight.bold)),
+                  ]),
+                  const SizedBox(height: 10),
+                  Text(
+                    access.roleCodes.isEmpty
+                      ? 'لا توجد عضويات وظيفية معتمدة وسارية'
+                      : access.roleCodes.map((code) => roleLabels[code] ?? code).join(' • '),
+                    style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'الصلاحيات الفعلية: ${access.permissionCodes.length}',
+                    style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  if (access.permissionCodes.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(access.permissionCodes.join(' • '),
+                        style: const TextStyle(color: Colors.blueGrey, fontSize: 10)),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
       for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
         Padding(
           padding: const EdgeInsets.only(bottom: 9),
