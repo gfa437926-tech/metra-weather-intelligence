@@ -1,4 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'data/station_directory_service.dart';
+import 'domain/station_record.dart';
+
+SupabaseClient? metraSupabaseClient;
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const publishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  if (supabaseUrl.isNotEmpty && publishableKey.isNotEmpty) {
+    await Supabase.initialize(url: supabaseUrl, publishableKey: publishableKey);
+    metraSupabaseClient = Supabase.instance.client;
+  }
+  runApp(const MetraWeatherApp());
+}
 
 void main() => runApp(const MetraWeatherApp());
 
@@ -6,7 +21,7 @@ const ink = Color(0xFF102448), navy = Color(0xFF071A43), blue = Color(0xFF1769D2
 const stations = ['محطة الرياض', 'محطة جدة', 'محطة الدمام', 'محطة تبوك', 'محطة أبها', 'محطة القصيم'];
 class MetraWeatherApp extends StatelessWidget {
  const MetraWeatherApp({super.key});
- @override Widget build(BuildContext context) => MaterialApp(debugShowCheckedModeBanner:false,title:'METRA Weather Intelligence',theme:ThemeData(useMaterial3:true,scaffoldBackgroundColor:canvas,colorScheme:ColorScheme.fromSeed(seedColor:blue),fontFamily:'Roboto'),home:const Shell());
+ @override Widget build(BuildContext context) => MaterialApp(debugShowCheckedModeBanner:false,title:'METRA Weather Intelligence',theme:ThemeData(useMaterial3:true,scaffoldBackgroundColor:canvas,colorScheme:ColorScheme.fromSeed(seedColor:blue),fontFamily:'Roboto'),home: metraSupabaseClient == null ? const Shell() : const AuthGate());
 }
 class Shell extends StatefulWidget { const Shell({super.key}); @override State<Shell> createState()=>_ShellState(); }
 class _ShellState extends State<Shell> {
@@ -78,37 +93,198 @@ class MapPage extends StatelessWidget {
     ),
   );
 }
-class StationsPage extends StatelessWidget {
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final client = metraSupabaseClient!;
+    return StreamBuilder<AuthState>(
+      stream: client.auth.onAuthStateChange,
+      builder: (context, snapshot) => client.auth.currentSession != null
+          ? const Shell()
+          : const SignInPage(),
+    );
+  }
+}
+
+class SignInPage extends StatefulWidget {
+  const SignInPage({super.key});
+  @override
+  State<SignInPage> createState() => _SignInPageState();
+}
+
+class _SignInPageState extends State<SignInPage> {
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool busy = false;
+  String? error;
+
+  @override
+  void dispose() { email.dispose(); password.dispose(); super.dispose(); }
+
+  Future<void> signIn() async {
+    if (email.text.trim().isEmpty || password.text.isEmpty) {
+      setState(() => error = 'أدخل البريد الإلكتروني وكلمة المرور.');
+      return;
+    }
+    setState(() { busy = true; error = null; });
+    try {
+      await metraSupabaseClient!.auth.signInWithPassword(
+        email: email.text.trim(), password: password.text,
+      );
+    } on AuthException catch (e) {
+      setState(() => error = e.message);
+    } catch (_) {
+      setState(() => error = 'تعذر تسجيل الدخول حالياً. تحقق من الاتصال.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(body: Center(child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.cloud_queue, color: navy, size: 64),
+          const SizedBox(height: 12),
+          const Text('METRA', style: TextStyle(color: navy, fontSize: 30, fontWeight: FontWeight.w900)),
+          const Text('تسجيل الدخول إلى منصة الأرصاد الجوية'),
+          const SizedBox(height: 28),
+          TextField(controller: email, keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'البريد الإلكتروني', prefixIcon: Icon(Icons.email_outlined), border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: password, obscureText: true,
+            decoration: const InputDecoration(labelText: 'كلمة المرور', prefixIcon: Icon(Icons.lock_outline), border: OutlineInputBorder()),
+            onSubmitted: (_) => signIn()),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 12),
+            child: Text(error!, style: const TextStyle(color: Colors.red))),
+          const SizedBox(height: 18),
+          SizedBox(width: double.infinity, child: FilledButton(
+            onPressed: busy ? null : signIn,
+            child: busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('تسجيل الدخول'))),
+          const SizedBox(height: 12),
+          const Text('تخضع الحسابات للتحقق واعتماد الصلاحيات قبل الوصول إلى بيانات المحطات.',
+            textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 12)),
+        ]),
+      ),
+    ))),
+  );
+}
+
+class StationsPage extends StatefulWidget {
   const StationsPage({super.key});
+  @override
+  State<StationsPage> createState() => _StationsPageState();
+}
+
+class _StationsPageState extends State<StationsPage> {
+  Future<List<StationRecord>>? future;
+  String filter = 'الكل';
+
+  @override
+  void initState() {
+    super.initState();
+    final client = metraSupabaseClient;
+    if (client != null) future = StationDirectoryService(client).fetchStations();
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     title: 'محطات الرصد',
-    subtitle: 'الكلاسيكية والآلية في مكان واحد',
-    child: Column(
-      children: stations.map((s) => Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-        child: Row(
-          children: [
-            const CircleAvatar(backgroundColor: Color(0xFFE7F1FF), child: Icon(Icons.sensors, color: blue)),
-            const SizedBox(width: 12),
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s, style: const TextStyle(fontWeight: FontWeight.bold, color: ink)),
-                const Text('محطة آلية • بيانات تجريبية', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
-              ],
-            )),
-            const Icon(Icons.circle, color: Colors.green, size: 9),
-            const SizedBox(width: 8),
-            const Text('متصلة', style: TextStyle(color: Colors.green, fontSize: 11)),
-          ],
+    subtitle: 'الدليل الموحد للمحطات الكلاسيكية والآلية',
+    child: future == null
+      ? const _StationMessage(icon: Icons.cloud_off_outlined,
+          title: 'خدمة المحطات غير مهيأة',
+          message: 'شغّل التطبيق مع إعدادات Supabase للوصول إلى دليل المحطات. لا تُعرض بيانات تجريبية على أنها بيانات تشغيلية.')
+      : FutureBuilder<List<StationRecord>>(
+          future: future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(padding: EdgeInsets.all(36), child: Center(child: CircularProgressIndicator()));
+            }
+            if (snapshot.hasError) {
+              return _StationMessage(
+                icon: Icons.lock_outline,
+                title: 'تعذر الوصول إلى الدليل',
+                message: 'الحساب يحتاج إلى الاعتماد أو لا تتوفر صلاحية الوصول. تحقق من الحساب والاتصال.',
+                onRetry: () => setState(() => future = StationDirectoryService(metraSupabaseClient!).fetchStations()),
+              );
+            }
+            final all = snapshot.data ?? const <StationRecord>[];
+            final visible = all.where((station) =>
+              filter == 'الكل' ||
+              (filter == 'كلاسيكية' && station.isClassic) ||
+              (filter == 'آلية' && !station.isClassic)).toList(growable: false);
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Wrap(spacing: 8, children: [
+                for (final item in ['الكل', 'كلاسيكية', 'آلية'])
+                  ChoiceChip(label: Text(item), selected: filter == item,
+                    onSelected: (_) => setState(() => filter = item)),
+              ]),
+              const SizedBox(height: 12),
+              Text('${visible.length} محطة • ${visible.where((s) => s.hasCoordinates).length} بإحداثيات',
+                style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+              const SizedBox(height: 10),
+              if (visible.isEmpty) const _StationMessage(icon: Icons.sensors_off,
+                title: 'لا توجد محطات', message: 'لا توجد سجلات ضمن عامل التصفية المحدد.'),
+              for (final station in visible)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 9),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17)),
+                  child: Row(children: [
+                    CircleAvatar(
+                      backgroundColor: station.isClassic ? const Color(0xFFFFF0DA) : const Color(0xFFE7F1FF),
+                      child: Icon(station.isClassic ? Icons.home_work_outlined : Icons.sensors,
+                        color: station.isClassic ? const Color(0xFFB97716) : blue)),
+                    const SizedBox(width: 11),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(station.name, style: const TextStyle(fontWeight: FontWeight.bold, color: ink)),
+                      Text('${station.typeLabel} • ${station.code}', style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                      Text(station.hasCoordinates
+                        ? 'إحداثيات: ${station.latitude!.toStringAsFixed(4)}, ${station.longitude!.toStringAsFixed(4)}'
+                        : 'لا تتوفر إحداثيات موثقة', style: const TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                    ])),
+                    const SizedBox(width: 8),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text(station.approvalLabel, style: TextStyle(fontSize: 10,
+                        color: station.approvalStatus == 'approved' ? Colors.green : Colors.orange.shade800)),
+                      Text(station.operationalStatus == 'active' ? 'فعالة' : 'غير متحقق',
+                        style: const TextStyle(fontSize: 9, color: Colors.blueGrey)),
+                    ]),
+                  ]),
+                ),
+            ]);
+          },
         ),
-      )).toList(),
-    ),
   );
 }
+
+class _StationMessage extends StatelessWidget {
+  const _StationMessage({required this.icon, required this.title, required this.message, this.onRetry});
+  final IconData icon;
+  final String title, message;
+  final VoidCallback? onRetry;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity, padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+    child: Column(children: [
+      Icon(icon, color: blue, size: 36), const SizedBox(height: 10),
+      Text(title, style: const TextStyle(color: ink, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 7),
+      Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+      if (onRetry != null) ...[
+        const SizedBox(height: 12),
+        OutlinedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('إعادة المحاولة')),
+      ],
+    ]),
+  );
+}
+
 class AlertsPage extends StatelessWidget {
   const AlertsPage({super.key});
   @override

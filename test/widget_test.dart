@@ -4,7 +4,6 @@ import 'package:metra_weather_intelligence/main.dart';
 void main() {
   testWidgets('METRA shell renders Arabic navigation and weather overview', (tester) async {
     await tester.pumpWidget(const MetraWeatherApp());
-
     expect(find.text('METRA'), findsOneWidget);
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('الخريطة'), findsWidgets);
@@ -13,12 +12,12 @@ void main() {
     expect(find.text('الإعدادات'), findsWidgets);
   });
 
-  testWidgets('navigation opens station page', (tester) async {
+  testWidgets('station directory does not label placeholder records as live', (tester) async {
     await tester.pumpWidget(const MetraWeatherApp());
     await tester.tap(find.text('المحطات').last);
     await tester.pumpAndSettle();
-
     expect(find.text('محطات الرصد'), findsOneWidget);
-    expect(find.text('محطة الرياض'), findsOneWidget);
+    expect(find.text('خدمة المحطات غير مهيأة'), findsOneWidget);
+    expect(find.text('محطة الرياض'), findsNothing);
   });
 }
