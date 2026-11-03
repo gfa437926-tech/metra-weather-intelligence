@@ -329,6 +329,14 @@ class _StationsPageState extends State<StationsPage> {
               (filter == 'كلاسيكية' && station.isClassic) ||
               (filter == 'آلية' && !station.isClassic)).toList(growable: false);
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Expanded(child: Text('الدليل الموحد', style: TextStyle(color: ink, fontWeight: FontWeight.bold))),
+                IconButton(
+                  tooltip: 'تحديث الدليل',
+                  onPressed: () => setState(() => future = StationDirectoryService(metraSupabaseClient!).fetchStations()),
+                  icon: const Icon(Icons.refresh, color: blue),
+                ),
+              ]),
               Wrap(spacing: 8, children: [
                 for (final item in ['الكل', 'كلاسيكية', 'آلية'])
                   ChoiceChip(label: Text(item), selected: filter == item,
