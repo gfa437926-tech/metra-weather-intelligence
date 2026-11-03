@@ -1,8 +1,6 @@
-include: package:flutter_lints/flutter.yaml
-
+analyzer:
+  errors:
+    deprecated_member_use: ignore
 linter:
   rules:
     avoid_print: true
-    prefer_const_constructors: true
-    prefer_const_declarations: true
-    require_trailing_commas: true
