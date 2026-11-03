@@ -203,22 +203,48 @@ class _MapPageState extends State<MapPage> {
                   if (stations.isEmpty) {
                     return const _MapUnavailable(message: 'لا توجد إحداثيات متاحة للعرض ضمن الدليل.');
                   }
-                  final markers = stations.map((station) => Marker(
-                    point: LatLng(station.latitude!, station.longitude!),
-                    width: 44, height: 54,
-                    child: Tooltip(
-                      message: '${station.name} • ${station.typeLabel} • ${station.approvalLabel} • ${station.operationalLabel}',
-                      child: Icon(
-                        station.isClassic ? Icons.location_on : Icons.sensors,
-                        size: 38,
-                        color: station.isClassic ? const Color(0xFFD28A19) : blue,
-                        shadows: const [Shadow(color: Colors.black26, blurRadius: 5, offset: Offset(0, 2))],
-                      ),
-                    ),
-                  )).toList(growable: false);
                   final stationPoints = stations
                       .map((station) => LatLng(station.latitude!, station.longitude!))
                       .toList(growable: false);
+                  // Identical coordinates collapse visually; cluster them so
+                  // every record remains discoverable from the map.
+                  final clusters = <String, List<StationRecord>>{};
+                  for (final station in stations) {
+                    final key = '${station.latitude!.toStringAsFixed(5)},${station.longitude!.toStringAsFixed(5)}';
+                    clusters.putIfAbsent(key, () => <StationRecord>[]).add(station);
+                  }
+                  final markers = clusters.entries.map((entry) {
+                    final members = entry.value;
+                    final first = members.first;
+                    final classicCount = members.where((s) => s.isClassic).length;
+                    final automaticCount = members.length - classicCount;
+                    final color = classicCount > 0 && automaticCount == 0
+                        ? const Color(0xFFD28A19)
+                        : automaticCount > 0 && classicCount == 0 ? blue : navy;
+                    return Marker(
+                      point: LatLng(first.latitude!, first.longitude!),
+                      width: 54,
+                      height: 58,
+                      child: Tooltip(
+                        message: members.map((s) =>
+                          '${s.name} • ${s.typeLabel} • ${s.approvalLabel} • ${s.operationalLabel}'
+                        ).join('\\n'),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            members.length > 1 ? '${members.length}' : (first.isClassic ? 'ك' : 'آ'),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(growable: false);
                   final bounds = LatLngBounds.fromPoints(stationPoints);
                   return FlutterMap(
                     options: MapOptions(
