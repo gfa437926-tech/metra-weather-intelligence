@@ -39,7 +39,7 @@ class _ShellState extends State<Shell> {
 
 class HomePage extends StatelessWidget { const HomePage({super.key});
  @override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.fromLTRB(18,18,18,28),children:[
- const Header(),const SizedBox(height:20),const WeatherHero(),const SizedBox(height:20),
+ const Header(),const SizedBox(height:12),Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:9),decoration:BoxDecoration(color:const Color(0xFFFFF3D8),borderRadius:BorderRadius.circular(12)),child:const Row(children:[Icon(Icons.info_outline,color:Color(0xFF9A6700),size:16),SizedBox(width:7),Expanded(child:Text('واجهة تجريبية — القيم المعروضة ليست قراءات طقس حية',style:TextStyle(color:Color(0xFF855B00),fontSize:11,fontWeight:FontWeight.w600)))])),const SizedBox(height:20),const WeatherHero(),const SizedBox(height:20),
  const SectionTitle('توقعات الساعات القادمة','24 ساعة'),
  SizedBox(height:112,child:ListView(scrollDirection:Axis.horizontal,children:const [Hour('الآن','☀','29°',selected:true),Hour('10 ص','☀','30°'),Hour('12 م','⛅','32°'),Hour('3 م','☀','34°'),Hour('6 م','🌤','30°'),Hour('9 م','☾','26°')])),
  const SizedBox(height:22),const SectionTitle('مؤشرات الطقس','تفاصيل'),
