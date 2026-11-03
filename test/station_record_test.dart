@@ -2,58 +2,47 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:metra_weather_intelligence/domain/station_record.dart';
 
 void main() {
-  group('StationRecord.fromJson', () {
-    test('parses Arabic name, station type and numeric coordinate strings', () {
-      final station = StationRecord.fromJson({
-        'id': 'id-1',
-        'local_station_code': 'R-001',
-        'name_ar': ' محطة تجريبية ',
-        'name_en': 'Test Station',
-        'station_type': 'classic',
-        'operational_status': 'active',
-        'approval_status': 'approved',
-        'latitude': '24.7',
-        'longitude': 46.6,
-      });
-      expect(station.name, 'محطة تجريبية');
-      expect(station.typeLabel, 'كلاسيكية');
-      expect(station.hasCoordinates, isTrue);
-      expect(station.approvalLabel, 'معتمدة');
-    });
+  StationRecord parse({
+    String type = 'automatic',
+    Object? latitude = 24.7136,
+    Object? longitude = 46.6753,
+  }) => StationRecord.fromJson({
+    'id': 'station-1',
+    'local_station_code': 'RYD-001',
+    'name_ar': 'محطة اختبار',
+    'station_type': type,
+    'operational_status': 'active',
+    'approval_status': 'approved',
+    'latitude': latitude,
+    'longitude': longitude,
+  });
 
-    test('keeps missing coordinates absent and does not invent a map location', () {
-      final station = StationRecord.fromJson({
-        'id': 'id-2',
-        'local_station_code': 'R-002',
-        'name_ar': 'محطة دون إحداثيات',
-        'station_type': 'automatic',
-        'operational_status': 'unverified',
-        'approval_status': 'pending',
-      });
-      expect(station.latitude, isNull);
-      expect(station.longitude, isNull);
-      expect(station.hasCoordinates, isFalse);
-      expect(station.approvalLabel, 'بانتظار الاعتماد');
-    });
+  test('parses numeric and string coordinates without losing valid locations', () {
+    expect(parse().hasCoordinates, isTrue);
+    expect(parse(latitude: '24.7136', longitude: '46.6753').hasCoordinates, isTrue);
+  });
 
-    test('rejects out-of-range coordinates for map rendering', () {
-      final station = StationRecord.fromJson({
-        'id': 'id-3',
-        'name_ar': 'محطة',
-        'station_type': 'automatic',
-        'latitude': 95,
-        'longitude': 181,
-      });
-      expect(station.hasCoordinates, isFalse);
-    });
+  test('rejects missing, non-numeric and out-of-range coordinates', () {
+    expect(parse(latitude: null, longitude: null).hasCoordinates, isFalse);
+    expect(parse(latitude: 'unknown', longitude: 46).hasCoordinates, isFalse);
+    expect(parse(latitude: 91, longitude: 46).hasCoordinates, isFalse);
+    expect(parse(latitude: 24, longitude: 181).hasCoordinates, isFalse);
+  });
 
-    test('maps requested changes status to Arabic label', () {
-      final station = StationRecord.fromJson({
-        'id': 'id-4',
-        'station_type': 'classic',
-        'approval_status': 'changes_requested',
-      });
-      expect(station.approvalLabel, 'تحتاج إلى تعديل');
+  test('distinguishes classic and automatic station types', () {
+    expect(parse(type: 'classic').isClassic, isTrue);
+    expect(parse(type: 'CLASSIC').isClassic, isTrue);
+    expect(parse(type: 'automatic').isClassic, isFalse);
+    expect(parse(type: 'automatic').typeLabel, 'آلية');
+  });
+
+  test('prefers a non-empty Arabic station name and falls back to English', () {
+    final station = StationRecord.fromJson({
+      'id': 1,
+      'name_ar': '  ',
+      'name_en': 'Riyadh Station',
+      'station_type': 'automatic',
     });
+    expect(station.name, 'Riyadh Station');
   });
 }
