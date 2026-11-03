@@ -748,7 +748,13 @@ class _SettingsPageState extends State<SettingsPage> {
             );
           },
         ),
-      for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
+      for (final setting in const [
+        ('المدينة الافتراضية', 'لم يتم ربط اختيار المدن بعد', Icons.location_city_outlined),
+        ('وحدات الحرارة', 'الوحدة الحالية: مئوية', Icons.thermostat_outlined),
+        ('وحدات سرعة الرياح', 'الوحدة الحالية: كم/ساعة', Icons.air),
+        ('إشعارات الطقس', 'مصدر التنبيهات الرسمي غير متصل', Icons.notifications_outlined),
+        ('اللغة', 'واجهة التطبيق باللغة العربية', Icons.language),
+      ])
         Padding(
           padding: const EdgeInsets.only(bottom: 9),
           child: Material(
@@ -756,15 +762,43 @@ class _SettingsPageState extends State<SettingsPage> {
             borderRadius: BorderRadius.circular(16),
             clipBehavior: Clip.antiAlias,
             child: ListTile(
-              leading: const Icon(Icons.tune, color: blue),
-              title: Text(s),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$s: لم يتم ربط هذا الخيار بعد')),
-              ),
+              leading: Icon(setting.$3, color: blue),
+              title: Text(setting.$1),
+              subtitle: Text(setting.$2, style: const TextStyle(fontSize: 11)),
+              trailing: const Icon(Icons.lock_outline, size: 17, color: Colors.blueGrey),
             ),
           ),
         ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            leading: const Icon(Icons.info_outline, color: blue),
+            title: const Text('حول التطبيق'),
+            subtitle: const Text('الإصدار ومصادر البيانات وحالة التكامل', style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.chevron_left),
+            onTap: () => showAboutDialog(
+              context: context,
+              applicationName: 'METRA Weather Intelligence',
+              applicationVersion: '0.1.0',
+              applicationLegalese: 'منصة معلومات الأرصاد الجوية',
+              children: const [
+                SizedBox(height: 12),
+                Text('الطقس الحالي والتوقعات الساعية في لوحة العرض مصدرها Open-Meteo، وهي ليست قياسات مباشرة من محطات METRA.'),
+                SizedBox(height: 8),
+                Text('دليل المحطات يُحمّل من مشروع Supabase الجديد عبر وظيفة محمية بالتحقق من هوية المستخدم.'),
+                SizedBox(height: 8),
+                Text('التنبيهات الرسمية والرادار وقياسات المحطات لم تُربط بعد بمصدر تشغيلي معتمد.'),
+                SizedBox(height: 8),
+                Text('خرائط المواقع تستخدم OpenStreetMap.'),
+              ],
+            ),
+          ),
+        ),
+      ),
       if (metraSupabaseClient != null)
         Padding(
           padding: const EdgeInsets.only(top: 8),
