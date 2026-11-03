@@ -20,7 +20,7 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
       - name: Analyze application source
-        run: flutter analyze lib
+        run: flutter analyze
       - name: Run tests
         run: flutter test
       - name: Build web release

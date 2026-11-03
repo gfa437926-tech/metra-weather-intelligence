@@ -50,7 +50,7 @@ No schema or data changes were made to the new database during the current integ
 ## CI
 GitHub Actions runs:
 1. `flutter pub get`
-2. `flutter analyze lib`
+2. `flutter analyze`
 3. `flutter test`
 4. `flutter build web --release`
 5. Uploads `build/web` as the `metra-web-release` artifact.
