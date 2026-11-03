@@ -33,6 +33,47 @@ Deno.serve(async (request: Request) => {
     return json({ error: "account_not_active", state: account?.account_state ?? "pending" }, 403);
   }
 
+  // Resolve the signed-in user's approved, currently valid role memberships
+  // and direct permission grants. Empty assignments remain empty; never infer
+  // elevated access from account activation alone.
+  const now = new Date().toISOString();
+  const { data: memberships, error: membershipError } = await admin
+    .from("authority_memberships")
+    .select("authority_id,membership_role_code")
+    .eq("user_id", userData.user.id)
+    .eq("approval_status", "approved")
+    .lte("valid_from", now)
+    .or(`valid_to.is.null,valid_to.gt.${now}`);
+  if (membershipError) return json({ error: "membership_check_failed" }, 500);
+
+  const roleCodes = [...new Set((memberships ?? [])
+    .map((item) => String(item.membership_role_code))
+    .filter(Boolean))];
+  let rolePermissions: string[] = [];
+  if (roleCodes.length > 0) {
+    const { data, error } = await admin
+      .from("metra_role_permissions")
+      .select("permission_code")
+      .in("role_code", roleCodes);
+    if (error) return json({ error: "role_permission_check_failed" }, 500);
+    rolePermissions = (data ?? []).map((item) => String(item.permission_code));
+  }
+
+  const { data: directGrants, error: grantError } = await admin
+    .from("permission_grants")
+    .select("permission_code")
+    .eq("user_id", userData.user.id)
+    .eq("approval_status", "approved")
+    .is("revoked_at", null)
+    .lte("valid_from", now)
+    .or(`valid_to.is.null,valid_to.gt.${now}`);
+  if (grantError) return json({ error: "permission_grant_check_failed" }, 500);
+
+  const effectivePermissions = [...new Set([
+    ...rolePermissions,
+    ...(directGrants ?? []).map((item) => String(item.permission_code)),
+  ])].sort();
+
   // Fetch in pages so the directory is not silently truncated at 1,000 records.
   const stations: Record<string, unknown>[] = [];
   const pageSize = 1000;
@@ -72,6 +113,13 @@ Deno.serve(async (request: Request) => {
     stations: result,
     total: result.length,
     with_coordinates: result.filter((station) => station.latitude !== null).length,
-    generated_at: new Date().toISOString(),
+    access: {
+      memberships: (memberships ?? []).map((item) => ({
+        authority_id: item.authority_id,
+        role_code: item.membership_role_code,
+      })),
+      permissions: effectivePermissions,
+    },
+    generated_at: now,
   });
 });
