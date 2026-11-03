@@ -59,6 +59,41 @@ void main() {
     expect(station.name, 'Riyadh Station');
   });
 
+  test('normalizes and labels approval and operational states', () {
+    final approved = StationRecord.fromJson({
+      'id': 'station-3',
+      'station_type': 'classic',
+      'approval_status': ' APPROVED ',
+      'operational_status': ' ACTIVE ',
+    });
+    expect(approved.approvalLabel, 'معتمدة');
+    expect(approved.operationalLabel, 'فعالة');
+
+    final rejected = StationRecord.fromJson({
+      'id': 'station-4',
+      'approval_status': 'rejected',
+      'operational_status': 'inactive',
+    });
+    expect(rejected.approvalLabel, 'مرفوضة');
+    expect(rejected.operationalLabel, 'متوقفة');
+
+    final suspended = StationRecord.fromJson({
+      'id': 'station-5',
+      'approval_status': 'changes_requested',
+      'operational_status': 'suspended',
+    });
+    expect(suspended.approvalLabel, 'تحتاج إلى تعديل');
+    expect(suspended.operationalLabel, 'معلّقة');
+
+    final retired = StationRecord.fromJson({
+      'id': 'station-6',
+      'approval_status': 'pending',
+      'operational_status': 'decommissioned',
+    });
+    expect(retired.approvalLabel, 'بانتظار الاعتماد');
+    expect(retired.operationalLabel, 'خارج الخدمة');
+  });
+
   test('uses safe unknown defaults for missing station classification', () {
     final station = StationRecord.fromJson({'id': 'station-2'});
     expect(station.typeLabel, 'نوع غير معروف');
