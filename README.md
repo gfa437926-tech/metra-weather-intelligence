@@ -1,10 +1,23 @@
 # METRA Weather Intelligence
 
-Dedicated Flutter/Dart weather application inspired by METRA's weather intelligence design.
+A dedicated Flutter/Dart weather application with Arabic RTL presentation.
+
+## Current UI
+- Weather overview and hourly forecast cards
+- Weather metric tiles
+- Map/radar preview
+- Combined station list
+- Alerts center
+- Settings screen
+- Bottom navigation with separate pages
 
 ## Run
+Install Flutter SDK, then run:
 
-Install Flutter SDK, then run `flutter pub get` and `flutter run` from the app directory.
+```bash
+flutter pub get
+flutter run
+```
 
-## Status
-The initial screen currently contains illustrative weather values and a placeholder map. Live weather API, radar tiles, and station feeds are not connected yet.
+## Data status
+The displayed weather readings and map are illustrative placeholders. Live weather APIs, radar tiles, actual station inventory and alert feeds are not connected yet. The app has not been built or device-tested in this environment.
