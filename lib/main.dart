@@ -142,15 +142,19 @@ class SettingsPage extends StatelessWidget {
     child: Column(
       children: [
         for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
-          Container(
-            margin: const EdgeInsets.only(bottom: 9),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-            child: ListTile(
-              leading: const Icon(Icons.tune, color: blue),
-              title: Text(s),
-              trailing: const Icon(Icons.chevron_left),
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$s: سيتم تفعيل الخيار في مرحلة الربط')),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                leading: const Icon(Icons.tune, color: blue),
+                title: Text(s),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$s: سيتم تفعيل الخيار في مرحلة الربط')),
+                ),
               ),
             ),
           ),
