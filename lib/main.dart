@@ -50,8 +50,112 @@ class MapDot extends StatelessWidget {const MapDot({super.key});@override Widget
 class StationStrip extends StatelessWidget {const StationStrip({super.key});@override Widget build(BuildContext context)=>SizedBox(height:94,child:ListView(scrollDirection:Axis.horizontal,children:stations.take(4).map((s)=>Container(width:150,margin:const EdgeInsets.only(left:9),padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Row(children:[Icon(Icons.sensors,color:blue,size:17),Spacer(),Icon(Icons.circle,color:Colors.green,size:8)]),const Spacer(),Text(s,style:const TextStyle(color:ink,fontWeight:FontWeight.bold,fontSize:12)),const Text('رصد آلي • متصل',style:TextStyle(color:Colors.blueGrey,fontSize:9))]))).toList()));}
 class AlertBanner extends StatelessWidget {const AlertBanner({super.key});@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.all(17),decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),gradient:const LinearGradient(colors:[navy,Color(0xFF174C98)])),child:const Row(children:[Icon(Icons.notifications_active_outlined,color:Color(0xFFFFD66B),size:28),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('التنبيهات الذكية',style:TextStyle(color:Colors.white,fontWeight:FontWeight.bold)),Text('ابقَ على اطلاع بتغيرات الطقس',style:TextStyle(color:Color(0xFFBFD7FA),fontSize:11))])),Icon(Icons.chevron_left,color:Colors.white)]));}
 
-class MapPage extends StatelessWidget {const MapPage({super.key});@override Widget build(BuildContext context)=>PageFrame(title:'خريطة الطقس',subtitle:'الرادار والمحطات',child:Column(children:[const MapPreview(),const SizedBox(height:16),Wrap(spacing:8,runSpacing:8,children:['الرادار','الأمطار','الحرارة','الرياح'].map((e)=>Chip(label:Text(e),avatar:const Icon(Icons.layers,size:16))).toList()),const SizedBox(height:18),const SectionTitle('المحطات على الخريطة','6 محطات'),const StationStrip(),const Text('الخريطة في هذه النسخة واجهة توضيحية؛ سيتم ربط طبقات الرادار ومواقع المحطات لاحقاً.',style:TextStyle(color:Colors.blueGrey,fontSize:12))])));}
-class StationsPage extends StatelessWidget {const StationsPage({super.key});@override Widget build(BuildContext context)=>PageFrame(title:'محطات الرصد',subtitle:'الكلاسيكية والآلية في مكان واحد',child:Column(children:stations.map((s)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18)),child:Row(children:[const CircleAvatar(backgroundColor:Color(0xFFE7F1FF),child:Icon(Icons.sensors,color:blue)),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(s,style:const TextStyle(fontWeight:FontWeight.bold,color:ink)),const Text('محطة آلية • بيانات تجريبية',style:TextStyle(fontSize:11,color:Colors.blueGrey))])),const Icon(Icons.circle,color:Colors.green,size:9),const SizedBox(width:8),const Text('متصلة',style:TextStyle(color:Colors.green,fontSize:11))]) )).toList()));}}
-class AlertsPage extends StatelessWidget {const AlertsPage({super.key});@override Widget build(BuildContext context)=>PageFrame(title:'التنبيهات',subtitle:'مركز التنبيهات الجوية',child:Column(children:[const AlertBanner(),const SizedBox(height:15),...['لا توجد تنبيهات نشطة','تنبيهات الحرارة','تنبيهات الرياح','تنبيهات الأمطار'].map((s)=>ListTile(leading:const Icon(Icons.notifications_none,color:blue),title:Text(s),subtitle:const Text('سيتم عرض التنبيهات عند ربط مصادر البيانات'),tileColor:Colors.white,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15)),contentPadding:const EdgeInsets.all(12),))])));}
-class SettingsPage extends StatelessWidget {const SettingsPage({super.key});@override Widget build(BuildContext context)=>PageFrame(title:'الإعدادات',subtitle:'تخصيص تجربة METRA',child:Column(children:[for(final s in ['المدينة الافتراضية','وحدات الحرارة','وحدات سرعة الرياح','إشعارات الطقس','اللغة','حول التطبيق'])Container(margin:const EdgeInsets.only(bottom:9),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16)),child:ListTile(leading:const Icon(Icons.tune,color:blue),title:Text(s),trailing:const Icon(Icons.chevron_left),onTap:()=>ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$s: سيتم تفعيل الخيار في مرحلة الربط')))))])));}
+class MapPage extends StatelessWidget {
+  const MapPage({super.key});
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: 'خريطة الطقس',
+    subtitle: 'الرادار والمحطات',
+    child: Column(
+      children: [
+        const MapPreview(),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ['الرادار', 'الأمطار', 'الحرارة', 'الرياح']
+              .map((e) => Chip(label: Text(e), avatar: const Icon(Icons.layers, size: 16)))
+              .toList(),
+        ),
+        const SizedBox(height: 18),
+        const SectionTitle('المحطات على الخريطة', '6 محطات'),
+        const StationStrip(),
+        const Text(
+          'الخريطة في هذه النسخة واجهة توضيحية؛ سيتم ربط طبقات الرادار ومواقع المحطات لاحقاً.',
+          style: TextStyle(color: Colors.blueGrey, fontSize: 12),
+        ),
+      ],
+    ),
+  );
+}
+class StationsPage extends StatelessWidget {
+  const StationsPage({super.key});
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: 'محطات الرصد',
+    subtitle: 'الكلاسيكية والآلية في مكان واحد',
+    child: Column(
+      children: stations.map((s) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        child: Row(
+          children: [
+            const CircleAvatar(backgroundColor: Color(0xFFE7F1FF), child: Icon(Icons.sensors, color: blue)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s, style: const TextStyle(fontWeight: FontWeight.bold, color: ink)),
+                const Text('محطة آلية • بيانات تجريبية', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+              ],
+            )),
+            const Icon(Icons.circle, color: Colors.green, size: 9),
+            const SizedBox(width: 8),
+            const Text('متصلة', style: TextStyle(color: Colors.green, fontSize: 11)),
+          ],
+        ),
+      )).toList(),
+    ),
+  );
+}
+class AlertsPage extends StatelessWidget {
+  const AlertsPage({super.key});
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: 'التنبيهات',
+    subtitle: 'مركز التنبيهات الجوية',
+    child: Column(
+      children: [
+        const AlertBanner(),
+        const SizedBox(height: 15),
+        ...['لا توجد تنبيهات نشطة', 'تنبيهات الحرارة', 'تنبيهات الرياح', 'تنبيهات الأمطار'].map(
+          (s) => ListTile(
+            leading: const Icon(Icons.notifications_none, color: blue),
+            title: Text(s),
+            subtitle: const Text('سيتم عرض التنبيهات عند ربط مصادر البيانات'),
+            tileColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            contentPadding: const EdgeInsets.all(12),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: 'الإعدادات',
+    subtitle: 'تخصيص تجربة METRA',
+    child: Column(
+      children: [
+        for (final s in ['المدينة الافتراضية', 'وحدات الحرارة', 'وحدات سرعة الرياح', 'إشعارات الطقس', 'اللغة', 'حول التطبيق'])
+          Container(
+            margin: const EdgeInsets.only(bottom: 9),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+            child: ListTile(
+              leading: const Icon(Icons.tune, color: blue),
+              title: Text(s),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$s: سيتم تفعيل الخيار في مرحلة الربط')),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
 class PageFrame extends StatelessWidget {const PageFrame({super.key,required this.title,required this.subtitle,required this.child});final String title,subtitle;final Widget child;@override Widget build(BuildContext context)=>ListView(padding:const EdgeInsets.fromLTRB(18,22,18,30),children:[const Header(),const SizedBox(height:25),Text(title,style:const TextStyle(color:ink,fontSize:25,fontWeight:FontWeight.bold)),const SizedBox(height:5),Text(subtitle,style:const TextStyle(color:Colors.blueGrey,fontSize:12)),const SizedBox(height:22),child]);}
