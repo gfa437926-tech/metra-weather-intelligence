@@ -409,22 +409,38 @@ class AlertsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
     title: 'التنبيهات',
     subtitle: 'مركز التنبيهات الجوية',
-    child: Column(
-      children: [
-        const AlertBanner(),
-        const SizedBox(height: 15),
-        ...['لا توجد تنبيهات نشطة', 'تنبيهات الحرارة', 'تنبيهات الرياح', 'تنبيهات الأمطار'].map(
-          (s) => ListTile(
-            leading: const Icon(Icons.notifications_none, color: blue),
-            title: Text(s),
-            subtitle: const Text('سيتم عرض التنبيهات عند ربط مصادر البيانات'),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            contentPadding: const EdgeInsets.all(12),
-          ),
+    child: Column(children: [
+      const AlertBanner(),
+      const SizedBox(height: 15),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE6EAF0)),
         ),
-      ],
-    ),
+        child: Column(children: [
+          const Icon(Icons.cloud_off_outlined, color: blue, size: 36),
+          const SizedBox(height: 10),
+          const Text('مصدر التنبيهات غير متصل',
+            style: TextStyle(color: ink, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text(
+            'لم يتم ربط مصدر رسمي للتنبيهات الجوية بعد. لا يمكن تأكيد وجود تنبيهات أو عدم وجودها حالياً.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.blueGrey, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          const Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+            children: [
+              Chip(label: Text('الحرارة')),
+              Chip(label: Text('الرياح')),
+              Chip(label: Text('الأمطار')),
+            ]),
+        ]),
+      ),
+    ]),
   );
 }
 class SettingsPage extends StatefulWidget {
