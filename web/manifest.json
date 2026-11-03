@@ -1,9 +1,0 @@
-{
-  "name": "METRA Weather Intelligence",
-  "short_name": "METRA",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#F3F6FC",
-  "theme_color": "#071A43",
-  "description": "منصة معلومات الأرصاد الجوية"
-}

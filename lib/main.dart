@@ -434,6 +434,7 @@ class StationsPage extends StatefulWidget {
 class _StationsPageState extends State<StationsPage> {
   Future<List<StationRecord>>? future;
   String filter = 'الكل';
+  String query = '';
 
   @override
   void initState() {
@@ -465,10 +466,19 @@ class _StationsPageState extends State<StationsPage> {
               );
             }
             final all = snapshot.data ?? const <StationRecord>[];
-            final visible = all.where((station) =>
-              filter == 'الكل' ||
-              (filter == 'كلاسيكية' && station.isClassic) ||
-              (filter == 'آلية' && !station.isClassic)).toList(growable: false);
+            final visible = all.where((station) {
+              final typeMatches = filter == 'الكل' ||
+                (filter == 'كلاسيكية' && station.isClassic) ||
+                (filter == 'آلية' && !station.isClassic);
+              final needle = query.trim().toLowerCase();
+              final textMatches = needle.isEmpty ||
+                station.name.toLowerCase().contains(needle) ||
+                station.code.toLowerCase().contains(needle);
+              return typeMatches && textMatches;
+            }).toList(growable: false);
+            final withoutCoordinates = all.where((s) => !s.hasCoordinates).length;
+            final pendingApproval = all.where((s) => s.approvalStatus.toLowerCase() != 'approved').length;
+            final unverified = all.where((s) => s.operationalStatus.toLowerCase() == 'unverified').length;
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Expanded(child: Text('الدليل الموحد', style: TextStyle(color: ink, fontWeight: FontWeight.bold))),
@@ -478,14 +488,36 @@ class _StationsPageState extends State<StationsPage> {
                   icon: const Icon(Icons.refresh, color: blue),
                 ),
               ]),
+              TextField(
+                onChanged: (value) => setState(() => query = value),
+                decoration: InputDecoration(
+                  hintText: 'ابحث باسم المحطة أو رمزها',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: query.isEmpty ? null : IconButton(
+                    tooltip: 'مسح البحث',
+                    onPressed: () => setState(() => query = ''),
+                    icon: const Icon(Icons.close),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 10),
               Wrap(spacing: 8, children: [
                 for (final item in ['الكل', 'كلاسيكية', 'آلية'])
                   ChoiceChip(label: Text(item), selected: filter == item,
                     onSelected: (_) => setState(() => filter = item)),
               ]),
               const SizedBox(height: 12),
-              Text('${visible.length} محطة • ${visible.where((s) => s.hasCoordinates).length} بإحداثيات',
+              Text('${visible.length} نتيجة من أصل ${all.length} محطة • ${visible.where((s) => s.hasCoordinates).length} بإحداثيات',
                 style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 7, runSpacing: 7, children: [
+                _StationCountChip(label: 'بلا إحداثيات', count: withoutCoordinates, color: Colors.deepOrange),
+                _StationCountChip(label: 'بانتظار الاعتماد', count: pendingApproval, color: Colors.orange.shade800),
+                _StationCountChip(label: 'غير متحقق تشغيلياً', count: unverified, color: Colors.blueGrey),
+              ]),
               const SizedBox(height: 10),
               if (visible.isEmpty) const _StationMessage(icon: Icons.sensors_off,
                 title: 'لا توجد محطات', message: 'لا توجد سجلات ضمن عامل التصفية المحدد.'),
@@ -519,6 +551,22 @@ class _StationsPageState extends State<StationsPage> {
             ]);
           },
         ),
+  );
+}
+
+class _StationCountChip extends StatelessWidget {
+  const _StationCountChip({required this.label, required this.count, required this.color});
+  final String label;
+  final int count;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Chip(
+    visualDensity: VisualDensity.compact,
+    avatar: CircleAvatar(radius: 10, backgroundColor: color,
+      child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 9))),
+    label: Text(label, style: const TextStyle(fontSize: 10)),
+    backgroundColor: Colors.white,
+    side: BorderSide(color: color.withOpacity(.25)),
   );
 }
 
