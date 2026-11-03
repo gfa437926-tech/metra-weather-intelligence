@@ -66,7 +66,7 @@ Deno.serve(async (request: Request) => {
   }
 
   const result = stations.map((station) => ({
-    ...station, ...(coordinateMap.get(station.id) ?? { latitude: null, longitude: null }),
+    ...station, ...(coordinateMap.get(String(station.id)) ?? { latitude: null, longitude: null }),
   }));
   return json({
     stations: result,
