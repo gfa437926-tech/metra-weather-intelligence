@@ -37,6 +37,7 @@ class WeatherService {
   return List.generate(times.length,(i)=>HourlyForecast(time:DateTime.parse(times[i] as String),temperature:(temps[i] as num).toDouble(),weatherCode:(codes[i] as num).toInt()));
  }
 
+}
 class HourlyForecast {
  const HourlyForecast({required this.time,required this.temperature,required this.weatherCode});
  final DateTime time; final double temperature; final int weatherCode;
