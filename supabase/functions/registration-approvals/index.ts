@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isValidRegistrationDecisionResult } from "./validation.ts";
+import { chunkValues } from "./batching.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,12 +63,16 @@ Deno.serve(async (request: Request) => {
       if (error) return json({ error: "station_assignment_check_failed" }, 500);
       const assignedIds = [...new Set((assignments ?? []).map((item) => String(item.station_id)))];
       if (assignedIds.length > 0) {
-        const { data: eligibleStations, error: eligibleError } = await admin
-          .from("station_catalogue").select("id")
-          .in("id", assignedIds).eq("approval_status", "approved")
-          .eq("operational_status", "active").eq("is_demo", false);
-        if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
-        const stationIds = (eligibleStations ?? []).map((item) => String(item.id));
+        const eligibleStations: { id: string }[] = [];
+        for (const batch of chunkValues(assignedIds, 200)) {
+          const { data, error: eligibleError } = await admin
+            .from("station_catalogue").select("id")
+            .in("id", batch).eq("approval_status", "approved")
+            .eq("operational_status", "active").eq("is_demo", false);
+          if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
+          eligibleStations.push(...(data ?? []));
+        }
+        const stationIds = eligibleStations.map((item) => String(item.id));
         if (stationIds.length > 0) {
           const pageSize = 500;
           for (let offset = 0; ; offset += pageSize) {
@@ -104,42 +109,53 @@ Deno.serve(async (request: Request) => {
       const pendingStationIds = [...new Set(pending.map((item) => String(item.requested_station_id)))];
       let eligibleStationIds = new Set<string>();
       if (pendingStationIds.length > 0) {
-        const { data: eligibleStations, error: eligibleError } = await admin
-          .from("station_catalogue").select("id")
-          .in("id", pendingStationIds).eq("approval_status", "approved")
-          .eq("operational_status", "active").eq("is_demo", false);
-        if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
-        eligibleStationIds = new Set((eligibleStations ?? []).map((item) => String(item.id)));
+        for (const batch of chunkValues(pendingStationIds, 200)) {
+          const { data: eligibleStations, error: eligibleError } = await admin
+            .from("station_catalogue").select("id")
+            .in("id", batch).eq("approval_status", "approved")
+            .eq("operational_status", "active").eq("is_demo", false);
+          if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
+          for (const station of eligibleStations ?? []) eligibleStationIds.add(String(station.id));
+        }
       }
       const eligiblePending = pending.filter((item) =>
         eligibleStationIds.has(String(item.requested_station_id)));
       const ids = eligiblePending.map((item) => String(item.id));
       if (ids.length > 0) {
-        const { data: approvals, error: auditError } = await admin
-          .from("registration_audit_events").select("request_id,actor_user_id")
-          .eq("event_type", "station_approved").in("request_id", ids);
-        if (auditError) return json({ error: "approval_audit_check_failed" }, 500);
-        const distinct = new Set((approvals ?? [])
-          .filter((item) => String(item.actor_user_id) !== actorId)
-          .map((item) => String(item.request_id)));
+        const distinct = new Set<string>();
+        for (const batch of chunkValues(ids, 200)) {
+          const { data: approvals, error: auditError } = await admin
+            .from("registration_audit_events").select("request_id,actor_user_id")
+            .eq("event_type", "station_approved").in("request_id", batch);
+          if (auditError) return json({ error: "approval_audit_check_failed" }, 500);
+          for (const item of approvals ?? []) {
+            if (String(item.actor_user_id) !== actorId) distinct.add(String(item.request_id));
+          }
+        }
         requestRows.push(...eligiblePending.filter((item) => distinct.has(String(item.id))));
       }
     }
 
     const userIds = [...new Set(requestRows.map((item) => String(item.user_id)))];
     const stationIds = [...new Set(requestRows.map((item) => String(item.requested_station_id)))];
-    const [{ data: profiles, error: profileError }, { data: stations, error: stationError }] =
-      await Promise.all([
-        userIds.length ? admin.from("metra_user_profiles")
-          .select("user_id,first_name,father_name,last_name,phone")
-          .in("user_id", userIds) : Promise.resolve({ data: [], error: null }),
-        stationIds.length ? admin.from("station_catalogue")
-          .select("id,local_station_code,name_ar,name_en,station_type,approval_status")
-          .in("id", stationIds) : Promise.resolve({ data: [], error: null }),
-      ]);
-    if (profileError || stationError) return json({ error: "queue_details_failed" }, 500);
-    const profileMap = new Map((profiles ?? []).map((item) => [String(item.user_id), item]));
-    const stationMap = new Map((stations ?? []).map((item) => [String(item.id), item]));
+    const profileMap = new Map<string, Record<string, unknown>>();
+    const stationMap = new Map<string, Record<string, unknown>>();
+    for (const batch of chunkValues(userIds, 200)) {
+      const { data: profiles, error: profileError } = await admin
+        .from("metra_user_profiles")
+        .select("user_id,first_name,father_name,last_name,phone")
+        .in("user_id", batch);
+      if (profileError) return json({ error: "queue_details_failed" }, 500);
+      for (const profile of profiles ?? []) profileMap.set(String(profile.user_id), profile);
+    }
+    for (const batch of chunkValues(stationIds, 200)) {
+      const { data: stations, error: stationError } = await admin
+        .from("station_catalogue")
+        .select("id,local_station_code,name_ar,name_en,station_type,approval_status")
+        .in("id", batch);
+      if (stationError) return json({ error: "queue_details_failed" }, 500);
+      for (const station of stations ?? []) stationMap.set(String(station.id), station);
+    }
     const items = requestRows.map((item) => ({
       ...item,
       applicant: profileMap.get(String(item.user_id)) ?? null,
