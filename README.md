@@ -20,9 +20,9 @@ The web build is generated in `build/web`. GitHub Actions uploads a CI artifact 
 - Supabase initialization, email/password sign-in, and account creation are enabled when compile-time configuration is provided.
 - Authenticated users without a METRA account are routed to the registration form; pending/rejected accounts cannot enter the application shell.
 - Registration roles are read from the active, requestable role catalogue. Station choices are marked with their stored approval status.
-- Registration is submitted through the JWT-protected `registration` Edge Function and an authenticated `public.submit_metra_registration` wrapper.
+- Registration is submitted through the JWT-protected `registration` Edge Function. The function derives the applicant ID from the verified JWT and invokes a server-only RPC using the service-role client.
 - The `registration-approvals` Edge Function exposes only actionable review items allowed by active direct approval grants and approved station assignments. Its decision RPC binds the reviewer to `auth.uid()` and delegates to the private two-stage approval transaction.
-- The registration submission wrapper binds the applicant to `auth.uid()`, pins the accepted terms version, uses database time, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
+- The registration RPC wrappers are executable only by `service_role`, not `anon` or `authenticated`. The submission transaction pins the accepted terms version, uses database time, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction. The approval Edge Function verifies the reviewer JWT before invoking the server-only decision RPC; the private transaction rechecks active account, direct grants, station assignment, and independent two-stage review.
 - Station data is fetched through the `station-directory` Edge Function.
 - The function verifies the user's JWT and requires `metra_account_states.account_state = active`.
 - It returns non-demo station catalogue records and their current valid coordinates.
@@ -36,7 +36,7 @@ supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for all three functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`, and `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`.
+Keep JWT verification enabled for all three functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/202611040004_restrict_registration_rpc_to_server_runtime.sql`.
 
 ## Account and approval bootstrap prerequisites
 - The inspected database currently has 62 non-demo station records, all pending/unverified, 50 coordinate-history rows, zero active METRA accounts, and zero submitted registration requests.
@@ -59,7 +59,7 @@ The Saudi National Center for Meteorology (NCM) documents a direct API integrati
 - NCM official developer guide: https://www.ncm.gov.sa/Ar/EService/Documents/developers/EWS%20APIs%20Technical%20Guide%20V.1.9.pdf
 
 ## Database safety
-The new METRA database now contains authenticated registration submission and two-stage decision entry points, with restricted grants and database-side validation tracked as migrations. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
+The new METRA database now contains registration submission and two-stage decision entry points restricted to the server runtime, with database-side validation tracked as migrations. The security advisor currently reports no security lint findings. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
 ## CI
 GitHub Actions runs:
