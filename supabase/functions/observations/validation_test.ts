@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { isValidObservationPayload, isValidObservedAt } from "./validation.ts";
+import { isValidObservationPayload, isValidObservedAt, isValidObservationSubmissionResult } from "./validation.ts";
 
 Deno.test("accepts a bounded daily observation", () => {
   assertEquals(isValidObservationPayload("daily", {
@@ -29,4 +29,28 @@ Deno.test("observed timestamps cannot be materially in the future", () => {
   assertEquals(isValidObservedAt(new Date(now).toISOString(), now), true);
   assertEquals(isValidObservedAt(new Date(now + 6 * 60 * 1000).toISOString(), now), false);
   assertEquals(isValidObservedAt("not-a-date", now), false);
+});
+
+
+Deno.test("accepts only a confirmed observation submission result", () => {
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "submitted", replayed: false,
+  }, "submitted"), true);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "draft", replayed: true,
+  }, "draft"), true);
+});
+
+Deno.test("rejects malformed or mismatched observation submission results", () => {
+  assertEquals(isValidObservationSubmissionResult(null, "submitted"), false);
+  assertEquals(isValidObservationSubmissionResult([], "submitted"), false);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "draft", replayed: false,
+  }, "submitted"), false);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "", status: "submitted", replayed: false,
+  }, "submitted"), false);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "submitted", replayed: "false",
+  }, "submitted"), false);
 });
