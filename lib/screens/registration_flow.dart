@@ -298,6 +298,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 child: Text(
                   (x['name_ar'] ?? '') .toString() + ' • ' +
                   (x['code'] ?? '').toString() + ' • ' +
+                  (x['authority_name'] ?? 'جهة غير محددة').toString() + ' • ' +
                   (x['approval_status'] == 'approved' ? 'معتمدة' : 'قيد الاعتماد') + ' • ' +
                   (x['operational_status'] == 'active' ? 'تشغيلية' :
                     x['operational_status'] == 'inactive' ? 'متوقفة' : 'غير متحقق'),
