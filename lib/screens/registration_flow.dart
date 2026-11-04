@@ -1,3 +1,4 @@
+import 'package:metra_weather_intelligence/utils/registration_eligibility.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -191,10 +192,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
-  Future<void> submit() async {
+  Future<void> submit(List<dynamic> stations) async {
     if (first.text.trim().isEmpty || father.text.trim().isEmpty ||
         last.text.trim().isEmpty || role == null || station == null || !terms) {
       setState(() => error = 'أكمل الحقول المطلوبة واختر الدور والمحطة ووافق على الشروط.');
+      return;
+    }
+    if (!isRegistrationStationSelectionEligible(stations, station)) {
+      setState(() => error = 'لا يمكن إرسال الطلب قبل اعتماد المحطة والتحقق من أنها فعالة تشغيلياً.');
       return;
     }
     setState(() { busy = true; error = null; success = null; });
@@ -308,9 +313,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
               onChanged: busy ? null : (value) => setState(() => station = value),
             ),
             if (stations.isEmpty) const _InlineNotice('لا توجد محطات متاحة حالياً.', true),
-            if (stations.any((item) => item['approval_status'] != 'approved' || item['operational_status'] != 'active'))
+            if (!stations.any((item) => item is Map &&
+                isRegistrationStationEligible(Map<String, dynamic>.from(item))))
               const _InlineNotice(
-                'تنبيه: لا يمكن إكمال اعتماد الانتساب لمحطة قبل اعتماد سجلها والتحقق من حالتها التشغيلية. ستظل الطلبات مرتبطة بمراجعة الجهة المختصة.',
+                'لا توجد حالياً محطة معتمدة وفعالة تشغيلياً. يمكنك استعراض الدليل، لكن إرسال طلب الانتساب سيتاح بعد اعتماد محطة والتحقق من تشغيلها.',
+                true,
+              ),
+            if (station != null && !isRegistrationStationSelectionEligible(stations, station))
+              const _InlineNotice(
+                'المحطة المختارة غير مؤهلة حالياً لطلبات الانتساب؛ يجب أن تكون معتمدة وفعالة تشغيلياً.',
                 true,
               ),
             const SizedBox(height: 10),
@@ -325,7 +336,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             if (success != null) _InlineNotice(success!, false),
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: FilledButton(
-              onPressed: busy || stations.isEmpty || roles.isEmpty ? null : submit,
+              onPressed: busy || stations.isEmpty || roles.isEmpty || !isRegistrationStationSelectionEligible(stations, station) ? null : () => submit(stations),
               child: busy ? const CircularProgressIndicator() : const Text('إرسال طلب الانتساب'),
             )),
             if (success != null) TextButton(onPressed: widget.onSubmitted, child: const Text('متابعة حالة الطلب')),
