@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegistrationGate extends StatefulWidget {
-  const RegistrationGate({super.key});
+  const RegistrationGate({super.key, required this.homeBuilder});
+  final WidgetBuilder homeBuilder;
   @override
   State<RegistrationGate> createState() => _RegistrationGateState();
 }
@@ -43,7 +44,7 @@ class _RegistrationGateState extends State<RegistrationGate> {
         );
       }
       final state = snapshot.data!['account_state']?.toString() ?? 'needs_registration';
-      if (state == 'active') return const Shell();
+      if (state == 'active') return widget.homeBuilder(context);
       if (state == 'needs_registration') return RegistrationPage(onSubmitted: refresh);
       if (state == 'pending' || state == 'pending_station_approval' || state == 'pending_system_approval') {
         return _MessagePage(

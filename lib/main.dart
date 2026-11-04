@@ -466,7 +466,7 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: client.auth.onAuthStateChange,
       builder: (context, snapshot) => client.auth.currentSession != null
-          ? const RegistrationGate()
+          ? RegistrationGate(homeBuilder: (_) => const Shell())
           : const SignInPage(),
     );
   }
