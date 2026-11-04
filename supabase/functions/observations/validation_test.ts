@@ -39,6 +39,9 @@ Deno.test("accepts only a confirmed observation submission result", () => {
   assertEquals(isValidObservationSubmissionResult({
     id: "observation-1", status: "draft", replayed: true,
   }, "draft"), true);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "approved", replayed: true,
+  }, "submitted"), true);
 });
 
 Deno.test("rejects malformed or mismatched observation submission results", () => {
@@ -46,6 +49,9 @@ Deno.test("rejects malformed or mismatched observation submission results", () =
   assertEquals(isValidObservationSubmissionResult([], "submitted"), false);
   assertEquals(isValidObservationSubmissionResult({
     id: "observation-1", status: "draft", replayed: false,
+  }, "submitted"), false);
+  assertEquals(isValidObservationSubmissionResult({
+    id: "observation-1", status: "approved", replayed: false,
   }, "submitted"), false);
   assertEquals(isValidObservationSubmissionResult({
     id: "", status: "submitted", replayed: false,
