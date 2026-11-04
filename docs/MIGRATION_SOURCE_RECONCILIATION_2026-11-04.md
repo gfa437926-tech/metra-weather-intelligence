@@ -7,10 +7,10 @@ Repository: `gfa437926-tech/metra-weather-intelligence2026`, branch `main`
 ## Findings
 
 - Database migration history contains **57** applied migrations.
-- The repository contains **13** SQL migration files.
-- **13** repository files match both the database migration version and name exactly.
+- The repository contains **24** SQL migration files.
+- **24** repository files match both the database migration version and name exactly.
 - **0** migrations have a matching version but a different filename.
-- **44** applied migrations have no same-version SQL source file in the repository.
+- **33** applied migrations have no same-version SQL source file in the repository.
 
 This is a migration-source drift issue. It does not mean the database schema is absent; the database currently has the applied objects. It means the repository is not a complete reproducible history of how the database reached its current state.
 
@@ -50,22 +50,11 @@ The following 44 database migrations remain without exact source files in the ac
 - `20261103002006_fix_pending_registration_replay_classification.sql`
 - `20261103010120_respect_scheduled_permission_revocation.sql`
 - `20261103010435_add_registration_foreign_key_indexes.sql`
-- `20261103025556_003_add_station_permission_check.sql`
 - `20261103122944_grant_runtime_station_coordinate_read.sql`
 - `20261103123005_link_membership_and_assignment_roles.sql`
 - `20261103123127_index_role_catalogue_foreign_keys.sql`
 - `20261103162707_enforce_explicit_role_permission_allowlist.sql`
 - `20261103162738_seed_conservative_observation_role_permissions.sql`
-- `20261104031431_005_station_registration_review_permission.sql`
-- `20261104031432_006_station_bound_registration_decision.sql`
-- `20261104031434_007_system_registration_review_permission.sql`
-- `20261104032044_008_registration_review_read_models.sql`
-- `20261104032342_009_secure_registration_submission_and_status.sql`
-- `20261104033138_010_station_user_directory_read_model.sql`
-- `20261104033144_011_station_user_directory_permission.sql`
-- `20261104033839_012_station_assignment_workflow.sql`
-- `20261104034246_013_station_assignment_revocation.sql`
-- `20261104035035_014_station_audit_read_model.sql`
 
 ## Safe recovery plan
 
@@ -76,8 +65,14 @@ The following 44 database migrations remain without exact source files in the ac
 5. Never reapply historical migrations merely to populate source files; their effects are already recorded in the database.
 6. After recovery, verify a clean migration inventory and test the complete migration chain against a disposable Supabase branch/database before any production deployment.
 
+## Additional source recovery completed on 2026-11-04
+
+- The prior repository's `database/migrations` directory contained the source SQL for applied migrations `003` and `005` through `014`; these eleven files were restored to this repository using the exact version/name recorded in the new database.
+- The corresponding live function definitions were inspected, and the authorization functions were confirmed non-executable by `anon` and `authenticated` and executable by `service_role` only. The role-permission rows introduced by these migrations were also confirmed present.
+- The prior repository's `supabase/migrations` directory contains five observation migration sources, all already restored. Its migration directories contain no further source files for the remaining 33 missing migrations.
+
 ## Guardrails
 
 - No historical migration was replayed during this audit. One new forward-only registration eligibility migration was applied and recorded as `20261104042128`.
-- Five observation workflow migrations were recovered from the prior METRA repository and restored under the exact version/name recorded in the new database. Their live table/function definitions were checked against the recovered SQL. The new registration eligibility migration `20261104042128_require_approved_active_station_for_registration` is applied and its exact SQL source is committed.
+- Five observation workflow migrations and eleven station/permission workflow migrations were recovered from the prior METRA repository (including its `database/migrations` directory) and restored under the exact version/name recorded in the new database. The recovered functions, execution privileges, and role-permission allow-list entries were checked against the live database. The new registration eligibility migration `20261104042128_require_approved_active_station_for_registration` is applied and its exact SQL source is committed.
 - The legacy database was not accessed or changed.
