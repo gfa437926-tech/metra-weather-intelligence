@@ -31,9 +31,10 @@ Deno.test("requires a meaningful bounded decision reason", () => {
   }), true);
 });
 
-Deno.test("rejects non-object and client-forged payload shapes", () => {
+Deno.test("rejects non-object payloads and ignores caller-supplied actor identity", () => {
   assertEquals(isValidStationReviewDecision(null), false);
   assertEquals(isValidStationReviewDecision([]), false);
+  // The Edge Function derives actor identity from the verified JWT, never this field.
   assertEquals(isValidStationReviewDecision({
     action: "decide", station_id: stationId, decision: "approved", reason: "مقبول", actor_id: stationId,
   }), true);
