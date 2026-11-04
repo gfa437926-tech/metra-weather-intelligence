@@ -130,7 +130,7 @@ Deno.serve(async (request: Request) => {
     const submit = payload.submit === true;
     if (!stationId || !createStationIds.includes(stationId) ||
         !["daily", "hourly", "phenomenon"].includes(type) ||
-        !Number.isFinite(observedTimestamp) || observedTimestamp > Date.now() + 5 * 60 * 1000 ||
+        !isValidObservedAt(observedAt) ||
         !idempotencyKey.trim() || idempotencyKey.length > 128 ||
         !isObject(observationPayload) || !isValidObservationPayload(type, observationPayload) ||
         new TextEncoder().encode(JSON.stringify(observationPayload)).length > 65536) {
