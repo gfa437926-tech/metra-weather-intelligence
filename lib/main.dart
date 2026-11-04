@@ -233,7 +233,7 @@ class _MapPageState extends State<MapPage> {
                       child: Tooltip(
                         message: members.map((s) =>
                           '${s.name} • ${s.typeLabel} • ${s.approvalLabel} • ${s.operationalLabel}'
-                        ).join('\\n'),
+                        ).join('\n'),
                         child: Container(
                           decoration: BoxDecoration(
                             color: color,
@@ -296,7 +296,8 @@ class _MapPageState extends State<MapPage> {
       Wrap(spacing: 14, runSpacing: 8, children: const [
         _MapLegend(color: Color(0xFFD28A19), label: 'محطة كلاسيكية'),
         _MapLegend(color: blue, label: 'محطة آلية'),
-        _MapLegend(color: navy, label: 'مواقع مشتركة'),
+        _MapLegend(color: navy, label: 'مزيج من أنواع المحطات'),
+        _MapLegend(color: Colors.blueGrey, label: 'نوع غير مصنف'),
       ]),
       const SizedBox(height: 12),
       FutureBuilder<List<StationRecord>>(
