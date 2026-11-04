@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isValidStationReviewDecision } from "./validation.ts";
 const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,"Content-Type":"application/json; charset=utf-8"}});
 const isObject=(v:unknown):v is Record<string,unknown>=>v!==null&&typeof v==="object"&&!Array.isArray(v);
@@ -26,32 +27,45 @@ Deno.serve(async(req:Request)=>{
  const payload=await req.json().catch(()=>({}));
  if(!isObject(payload)||typeof payload.action!=="string")return json({error:"invalid_payload"},400);
  if(payload.action==="list"){
-  const {data:stations,error}=await admin.from("station_catalogue")
-   .select("id,local_station_code,name_ar,name_en,station_type,approval_status,operational_status,owner_authority_id,elevation_m,timezone_name,description,submitted_at,source_system,source_table,source_record_id")
-   .eq("is_demo",false).eq("approval_status","pending").order("name_ar").limit(500);
-  if(error)return json({error:"station_review_queue_failed"},500);
-  const ids=(stations??[]).map(s=>String(s.id));
+  // Read the entire pending queue in bounded pages; never silently cap it.
+  const stations: Record<string,unknown>[]=[];
+  const stationPageSize=500;
+  for(let offset=0;;offset+=stationPageSize){
+   const {data:page,error}=await admin.from("station_catalogue")
+    .select("id,local_station_code,name_ar,name_en,station_type,approval_status,operational_status,owner_authority_id,elevation_m,timezone_name,description,submitted_at,source_system,source_table,source_record_id")
+    .eq("is_demo",false).eq("approval_status","pending").order("name_ar").order("id")
+    .range(offset,offset+stationPageSize-1);
+   if(error)return json({error:"station_review_queue_failed"},500);
+   stations.push(...(page??[]));
+   if(!page||page.length<stationPageSize)break;
+  }
+  const ids=stations.map(s=>String(s.id));
   const coords=new Map<string,Record<string,unknown>>();
+  const coordinatePageSize=1000;
   for(let offset=0;offset<ids.length;offset+=200){
    const batch=ids.slice(offset,offset+200);
-   const {data,error:coordError}=await admin.from("station_coordinates")
-    .select("station_id,latitude,longitude,coordinate_source,source_reference,valid_from")
-    .in("station_id",batch).lte("valid_from",now).or("valid_to.is.null,valid_to.gt."+now)
-    .order("valid_from",{ascending:false}).limit(1000);
-   if(coordError)return json({error:"station_coordinate_lookup_failed"},500);
-   for(const c of data??[]){const id=String(c.station_id);if(coords.has(id))continue;
-    const lat=Number(c.latitude),lon=Number(c.longitude);
-    if(Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180)coords.set(id,c);
+   for(let pageOffset=0;;pageOffset+=coordinatePageSize){
+    const {data:page,error:coordError}=await admin.from("station_coordinates")
+     .select("station_id,latitude,longitude,coordinate_source,source_reference,valid_from")
+     .in("station_id",batch).lte("valid_from",now).or("valid_to.is.null,valid_to.gt."+now)
+     .order("valid_from",{ascending:false}).order("id",{ascending:false})
+     .range(pageOffset,pageOffset+coordinatePageSize-1);
+    if(coordError)return json({error:"station_coordinate_lookup_failed"},500);
+    for(const c of page??[]){const id=String(c.station_id);if(coords.has(id))continue;
+     const lat=Number(c.latitude),lon=Number(c.longitude);
+     if(Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180)coords.set(id,c);
+    }
+    if(!page||page.length<coordinatePageSize||batch.every(id=>coords.has(id)))break;
    }
   }
-  return json({stations:(stations??[]).map(s=>({...s,current_coordinate:coords.get(String(s.id))??null}))});
+  return json({stations:stations.map(s=>({...s,current_coordinate:coords.get(String(s.id))??null})),total:stations.length});
  }
  if(payload.action==="decide"){
-  const stationId=typeof payload.station_id==="string"?payload.station_id:"";
-  const decision=typeof payload.decision==="string"?payload.decision:"";
-  const reason=typeof payload.reason==="string"?payload.reason.trim():"";
-  if(!stationId||!["approved","rejected","changes_requested"].includes(decision)||reason.length<5||reason.length>2000)
+  if(!isValidStationReviewDecision(payload))
    return json({error:"invalid_station_review_decision"},400);
+  const stationId=payload.station_id;
+  const decision=payload.decision;
+  const reason=payload.reason.trim();
   const {data,error}=await admin.rpc("decide_station_catalogue_review",{
    p_station_id:stationId,p_expected_status:"pending",p_actor_user_id:actorId,
    p_decision:decision,p_reason:reason,p_occurred_at:now
