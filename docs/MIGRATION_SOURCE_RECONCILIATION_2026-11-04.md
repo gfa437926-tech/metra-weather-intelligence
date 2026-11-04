@@ -7,7 +7,7 @@ Repository: `gfa437926-tech/metra-weather-intelligence2026`, branch `main`
 ## Findings
 
 - Database migration history contains **57** applied migrations.
-- The repository contains **8** SQL migration files.
+- The repository contains **13** SQL migration files.
 - **13** repository files match both the database migration version and name exactly.
 - **0** migrations have a matching version but a different filename.
 - **44** applied migrations have no same-version SQL source file in the repository.
@@ -78,6 +78,6 @@ The following 44 database migrations remain without exact source files in the ac
 
 ## Guardrails
 
-- No migration was replayed during this audit.
+- No historical migration was replayed during this audit. One new forward-only registration eligibility migration was applied and recorded as `20261104042128`.
 - Five observation workflow migrations were recovered from the prior METRA repository and restored under the exact version/name recorded in the new database. Their live table/function definitions were checked against the recovered SQL. The new registration eligibility migration `20261104042128_require_approved_active_station_for_registration` is applied and its exact SQL source is committed.
 - The legacy database was not accessed or changed.
