@@ -66,12 +66,22 @@ The Saudi National Center for Meteorology (NCM) documents a direct API integrati
 The new METRA database now contains registration submission and two-stage decision entry points restricted to the server runtime, with database-side validation tracked as migrations. The security advisor currently reports no security lint findings. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
 ## CI
-GitHub Actions runs:
-1. Type-checks the `station-directory`, `registration`, `registration-approvals`, `observations`, and `station-review` Edge Functions with Deno.
-2. Tests the station-directory permission rules with Deno.
-3. `flutter pub get`
-4. `flutter analyze`
-5. `flutter test`
-6. `flutter build web --release`
-7. Uploads `build/web` as the `metra-web-release` artifact.
-\n## Station catalogue review\nThe station review transaction is applied to the METRA Supabase database under migration `20261104110000_secure_station_catalogue_review`. The public RPC is executable only by `service_role`; the Edge Function verifies the caller JWT, active METRA account and explicit time-bounded review grant. Decisions are `approved`, `rejected`, or `changes_requested`, each with a reason of at least five characters. Catalogue approval is intentionally separate from operational verification/activation. Do not grant `stations.catalogue.review` until an authorized real reviewer has been identified and provisioned through the controlled identity process.\n
+
+GitHub Actions runs the following checks on pushes and pull requests targeting `main`:
+
+1. Type-checks the station directory, registration, registration approvals, observations, and station review Edge Functions with Deno.
+2. Tests registration approval response validation and bounded query batching.
+3. Tests station-directory permission rules.
+4. Tests operational observation payload and transaction-result validation.
+5. Tests station catalogue review validation.
+6. Runs `flutter pub get`, `flutter analyze`, and `flutter test`.
+7. Builds the production web release with `flutter build web --release`.
+8. Uploads the generated `build/web` directory as the `metra-web-release` artifact (14-day retention).
+
+A successful CI run verifies source checks and produces a web artifact. It does not by itself publish a hosted website or verify a live authenticated user journey.
+
+## Station catalogue review
+
+The station review transaction is applied to the METRA Supabase database under migration `20261104110000_secure_station_catalogue_review`. The public RPC is executable only by `service_role`; the Edge Function verifies the caller JWT, active METRA account, and explicit time-bounded review grant. Decisions are `approved`, `rejected`, or `changes_requested`, each with a reason of at least five characters.
+
+Catalogue approval is intentionally separate from operational verification/activation. Do not grant `stations.catalogue.review` until an authorized real reviewer has been identified and provisioned through the controlled identity process.
