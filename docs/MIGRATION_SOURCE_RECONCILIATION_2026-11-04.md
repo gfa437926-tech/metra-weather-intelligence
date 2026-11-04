@@ -8,9 +8,9 @@ Repository: `gfa437926-tech/metra-weather-intelligence2026`, branch `main`
 
 - Database migration history contains **57** applied migrations.
 - The repository contains **8** SQL migration files.
-- **8** repository files match both the database migration version and name exactly.
+- **13** repository files match both the database migration version and name exactly.
 - **0** migrations have a matching version but a different filename.
-- **49** applied migrations have no same-version SQL source file in the repository.
+- **44** applied migrations have no same-version SQL source file in the repository.
 
 This is a migration-source drift issue. It does not mean the database schema is absent; the database currently has the applied objects. It means the repository is not a complete reproducible history of how the database reached its current state.
 
@@ -19,6 +19,8 @@ This is a migration-source drift issue. It does not mean the database schema is 
 None. The migration source filename was aligned with the database history in commit `c563187b509190b254038d1aa8a358b6ff7a0c12`.
 
 ## Applied migrations with no same-version source file
+
+The following 44 database migrations remain without exact source files in the active repository:
 
 - `20261102154652_create_independent_station_catalogue.sql`
 - `20261102155101_index_station_catalogue_foreign_keys.sql`
@@ -54,11 +56,6 @@ None. The migration source filename was aligned with the database history in com
 - `20261103123127_index_role_catalogue_foreign_keys.sql`
 - `20261103162707_enforce_explicit_role_permission_allowlist.sql`
 - `20261103162738_seed_conservative_observation_role_permissions.sql`
-- `20261103164003_create_operational_observation_submission.sql`
-- `20261103164045_deny_client_access_to_operational_observations.sql`
-- `20261103164638_index_operational_observation_foreign_keys.sql`
-- `20261103185454_20261103215400_observation_review_decision.sql`
-- `20261103185955_harden_observation_decision_null_validation.sql`
 - `20261104031431_005_station_registration_review_permission.sql`
 - `20261104031432_006_station_bound_registration_decision.sql`
 - `20261104031434_007_system_registration_review_permission.sql`
@@ -82,5 +79,5 @@ None. The migration source filename was aligned with the database history in com
 ## Guardrails
 
 - No migration was replayed during this audit.
-- The new registration eligibility migration `20261104042128_require_approved_active_station_for_registration` is applied and its exact SQL source is committed.
+- Five observation workflow migrations were recovered from the prior METRA repository and restored under the exact version/name recorded in the new database. Their live table/function definitions were checked against the recovered SQL. The new registration eligibility migration `20261104042128_require_approved_active_station_for_registration` is applied and its exact SQL source is committed.
 - The legacy database was not accessed or changed.
