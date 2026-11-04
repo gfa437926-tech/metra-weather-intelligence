@@ -101,20 +101,33 @@ Deno.serve(async (request: Request) => {
 
   const ids = stations.map((station) => String(station.id));
   const coordinateMap = new Map<string, { latitude: number; longitude: number }>();
-  // PostgREST URL limits vary; keep each station-coordinate lookup bounded.
+  // Keep station-id batches and result pages bounded. Continue paging until
+  // every station has a valid current coordinate or its history is exhausted.
+  const coordinatePageSize = 1000;
   for (let offset = 0; offset < ids.length; offset += 200) {
     const batch = ids.slice(offset, offset + 200);
-    const { data: coordinates, error: coordinateError } = await admin
-      .from("station_coordinates")
-      .select("station_id,latitude,longitude,valid_from")
-      .in("station_id", batch).lte("valid_from", now)
-      .or(`valid_to.is.null,valid_to.gt.${now}`)
-      .order("valid_from", { ascending: false });
-    if (coordinateError) return json({ error: "coordinate_query_failed" }, 500);
-    for (const item of coordinates ?? []) {
-      if (!coordinateMap.has(String(item.station_id))) coordinateMap.set(String(item.station_id), {
-        latitude: Number(item.latitude), longitude: Number(item.longitude),
-      });
+    for (let pageOffset = 0; ; pageOffset += coordinatePageSize) {
+      const { data: coordinates, error: coordinateError } = await admin
+        .from("station_coordinates")
+        .select("station_id,latitude,longitude,valid_from")
+        .in("station_id", batch).lte("valid_from", now)
+        .or(`valid_to.is.null,valid_to.gt.${now}`)
+        .order("valid_from", { ascending: false })
+        .range(pageOffset, pageOffset + coordinatePageSize - 1);
+      if (coordinateError) return json({ error: "coordinate_query_failed" }, 500);
+      for (const item of coordinates ?? []) {
+        const stationId = String(item.station_id);
+        if (coordinateMap.has(stationId)) continue;
+        const latitude = Number(item.latitude);
+        const longitude = Number(item.longitude);
+        // An invalid newest row must not hide an older valid coordinate.
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+            latitude < -90 || latitude > 90 ||
+            longitude < -180 || longitude > 180) continue;
+        coordinateMap.set(stationId, { latitude, longitude });
+      }
+      if (!coordinates || coordinates.length < coordinatePageSize ||
+          batch.every((stationId) => coordinateMap.has(stationId))) break;
     }
   }
 
@@ -124,7 +137,7 @@ Deno.serve(async (request: Request) => {
   return json({
     stations: result,
     total: result.length,
-    with_coordinates: result.filter((station) => station.latitude !== null).length,
+    with_coordinates: result.filter((station) => station.latitude !== null && station.longitude !== null).length,
     access: {
       memberships: (memberships ?? [])
         .filter((item) => activeRoleCodes.includes(String(item.membership_role_code)))
