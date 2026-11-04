@@ -36,6 +36,11 @@ export const isValidObservationSubmissionResult = (
 ): value is { id: string; status: string; replayed: boolean } => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const result = value as Record<string, unknown>;
-  return typeof result.id === "string" && result.id.trim().length > 0 &&
-    result.status === expectedStatus && typeof result.replayed === "boolean";
+  if (typeof result.id !== "string" || result.id.trim().length === 0 ||
+      typeof result.replayed !== "boolean") return false;
+  if (result.replayed) {
+    // A successful earlier submission may already have moved through review.
+    return ["draft", "submitted", "approved", "returned"].includes(String(result.status));
+  }
+  return result.status === expectedStatus;
 };
