@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isValidRegistrationDecisionResult } from "./validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,7 +160,16 @@ Deno.serve(async (request: Request) => {
       return json({ error: "decision_failed", message: error.message }, 400);
     }
     const result = Array.isArray(data) ? data[0] : data;
-    return json({ result: result ?? null });
+    if (!isValidRegistrationDecisionResult(result, expectedStatus, decision)) {
+      if (result && typeof result === "object" && !Array.isArray(result)) {
+        const resultStatus = String((result as Record<string, unknown>).result_status ?? "");
+        if (resultStatus === "unauthorized") return json({ error: "permission_denied" }, 403);
+        if (resultStatus === "not_found") return json({ error: "registration_request_not_found" }, 404);
+        if (resultStatus === "conflict") return json({ error: "registration_state_conflict", result }, 409);
+      }
+      return json({ error: "registration_decision_unconfirmed" }, 502);
+    }
+    return json({ result });
   }
 
   if (!canReviewStation && !canReviewSystem) return json({ error: "permission_denied" }, 403);
