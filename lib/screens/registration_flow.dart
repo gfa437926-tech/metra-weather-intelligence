@@ -600,6 +600,8 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
               final stage = item['review_stage'] == 'station' ? 'اعتماد الجهة / المحطة' : 'الاعتماد النظامي النهائي';
               final stationName = station?['name_ar']?.toString() ?? 'محطة غير معروفة';
               final stationCode = station?['local_station_code']?.toString() ?? '';
+              final requestId = item['id']?.toString() ?? '';
+              final isProcessing = processingRequests.contains(requestId);
               return Card(
                 color: Colors.white,
                 child: Padding(
@@ -618,8 +620,6 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
                     Text('الدور المطلوب: ' + (item['requested_role_code']?.toString() ?? 'غير محدد')),
                     Text('البريد/الهاتف لا يُعرضان هنا؛ بيانات الحساب محمية في شاشة الهوية.'),
                     const SizedBox(height: 12),
-                    final requestId = item['id']?.toString() ?? '';
-                    final isProcessing = processingRequests.contains(requestId);
                     Wrap(spacing: 8, children: [
                       FilledButton.icon(
                         onPressed: isProcessing ? null : () => decide(item, 'approve'),
