@@ -16,15 +16,31 @@ class StationDirectoryService {
 
   Future<List<StationRecord>> fetchStations() async {
     final data = await _fetchPayload();
-    final rows = data['stations'];
-    if (rows is! List) throw const StationDirectoryException('استجابة دليل المحطات غير صالحة.');
-    return rows.whereType<Map>()
-        .map((row) => StationRecord.fromJson(Map<String, dynamic>.from(row)))
-        .toList(growable: false);
+    return parseStationRows(data['stations']);
   }
 
   Future<AccessContext> fetchAccessContext() async =>
       AccessContext.fromJson(await _fetchPayload());
+}
+
+List<StationRecord> parseStationRows(Object? value) {
+  if (value is! List) {
+    throw const StationDirectoryException('استجابة دليل المحطات غير صالحة.');
+  }
+  final stations = <StationRecord>[];
+  for (var index = 0; index < value.length; index++) {
+    final row = value[index];
+    if (row is! Map) {
+      throw StationDirectoryException('سجل المحطة رقم ${index + 1} غير صالح.');
+    }
+    final json = Map<String, dynamic>.from(row);
+    final id = json['id']?.toString().trim() ?? '';
+    if (id.isEmpty) {
+      throw StationDirectoryException('سجل المحطة رقم ${index + 1} لا يحتوي على معرّف.');
+    }
+    stations.add(StationRecord.fromJson(json));
+  }
+  return List<StationRecord>.unmodifiable(stations);
 }
 
 class StationDirectoryException implements Exception {
