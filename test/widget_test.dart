@@ -8,8 +8,17 @@ void main() {
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.text('الخريطة'), findsWidgets);
     expect(find.text('المحطات'), findsWidgets);
+    expect(find.text('الرصد'), findsWidgets);
     expect(find.text('التنبيهات'), findsWidgets);
     expect(find.text('الإعدادات'), findsWidgets);
+  });
+
+  testWidgets('observations page explains missing Supabase configuration', (tester) async {
+    await tester.pumpWidget(const MetraWeatherApp());
+    await tester.tap(find.text('الرصد').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الرصد التشغيلي'), findsOneWidget);
+    expect(find.text('خدمة الرصد غير مهيأة. شغّل التطبيق بإعدادات Supabase.'), findsOneWidget);
   });
 
   testWidgets('station directory does not label placeholder records as live', (tester) async {
@@ -21,4 +30,5 @@ void main() {
     expect(find.text('محطة الرياض'), findsNothing);
   });
 }
+
 
