@@ -69,27 +69,39 @@ Deno.serve(async (request: Request) => {
         if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
         const stationIds = (eligibleStations ?? []).map((item) => String(item.id));
         if (stationIds.length > 0) {
-          const { data, error: queueError } = await admin
-            .from("registration_requests")
-            .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
-            .eq("status", "pending_station_approval")
-            .neq("user_id", actorId).in("requested_station_id", stationIds)
-            .order("submitted_at", { ascending: true });
-          if (queueError) return json({ error: "station_queue_failed" }, 500);
-          requestRows.push(...(data ?? []));
+          const pageSize = 500;
+          for (let offset = 0; ; offset += pageSize) {
+            const { data, error: queueError } = await admin
+              .from("registration_requests")
+              .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
+              .eq("status", "pending_station_approval")
+              .neq("user_id", actorId).in("requested_station_id", stationIds)
+              .order("submitted_at", { ascending: true }).order("id", { ascending: true })
+              .range(offset, offset + pageSize - 1);
+            if (queueError) return json({ error: "station_queue_failed" }, 500);
+            requestRows.push(...(data ?? []));
+            if (!data || data.length < pageSize) break;
+          }
         }
       }
     }
 
     if (canReviewSystem) {
-      const { data: pending, error: pendingError } = await admin
-        .from("registration_requests")
-        .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
-        .eq("status", "pending_system_approval")
-        .neq("user_id", actorId)
-        .order("submitted_at", { ascending: true });
-      if (pendingError) return json({ error: "system_queue_failed" }, 500);
-      const pendingStationIds = [...new Set((pending ?? []).map((item) => String(item.requested_station_id)))];
+      const pending: Record<string, unknown>[] = [];
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error: pendingError } = await admin
+          .from("registration_requests")
+          .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
+          .eq("status", "pending_system_approval")
+          .neq("user_id", actorId)
+          .order("submitted_at", { ascending: true }).order("id", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (pendingError) return json({ error: "system_queue_failed" }, 500);
+        pending.push(...(data ?? []));
+        if (!data || data.length < pageSize) break;
+      }
+      const pendingStationIds = [...new Set(pending.map((item) => String(item.requested_station_id)))];
       let eligibleStationIds = new Set<string>();
       if (pendingStationIds.length > 0) {
         const { data: eligibleStations, error: eligibleError } = await admin
@@ -99,7 +111,7 @@ Deno.serve(async (request: Request) => {
         if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
         eligibleStationIds = new Set((eligibleStations ?? []).map((item) => String(item.id)));
       }
-      const eligiblePending = (pending ?? []).filter((item) =>
+      const eligiblePending = pending.filter((item) =>
         eligibleStationIds.has(String(item.requested_station_id)));
       const ids = eligiblePending.map((item) => String(item.id));
       if (ids.length > 0) {
