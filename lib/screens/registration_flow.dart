@@ -600,6 +600,12 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
               final stage = item['review_stage'] == 'station' ? 'اعتماد الجهة / المحطة' : 'الاعتماد النظامي النهائي';
               final stationName = station?['name_ar']?.toString() ?? 'محطة غير معروفة';
               final stationCode = station?['local_station_code']?.toString() ?? '';
+              final requestedRole = item['requested_role'] is Map
+                  ? item['requested_role'] as Map
+                  : null;
+              final requestedRoleName = requestedRole?['name_ar']?.toString()
+                  ?? item['requested_role_code']?.toString()
+                  ?? 'غير محدد';
               final requestId = item['id']?.toString() ?? '';
               final isProcessing = processingRequests.contains(requestId);
               return Card(
@@ -617,7 +623,7 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
                     Text(stage, style: const TextStyle(color: Color(0xFF1769D2), fontWeight: FontWeight.w600)),
                     const SizedBox(height: 5),
                     Text('المحطة: ' + stationName + (stationCode.isEmpty ? '' : ' • ' + stationCode)),
-                    Text('الدور المطلوب: ' + (item['requested_role_code']?.toString() ?? 'غير محدد')),
+                    Text('الدور المطلوب: ' + requestedRoleName),
                     Text('البريد/الهاتف لا يُعرضان هنا؛ بيانات الحساب محمية في شاشة الهوية.'),
                     const SizedBox(height: 12),
                     Wrap(spacing: 8, children: [
