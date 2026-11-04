@@ -24,6 +24,8 @@ jobs:
         run: deno check --no-lock supabase/functions/observations/index.ts
       - name: Test Supabase Edge Function permission rules
         run: deno test --no-lock supabase/functions/station-directory/permissions_test.ts
+      - name: Test operational observation payload validation
+        run: deno test --no-lock supabase/functions/observations/validation_test.ts
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
