@@ -84,6 +84,10 @@ These labels are not sufficient by themselves to establish a reliable mapping to
 - CI type-checks the Edge Functions, runs their validation/permission/batching tests, analyzes Flutter, runs Flutter tests, builds the web release, and uploads the artifact.
 - The Supabase security advisor returned no lint findings in the 2026-11-04 audit.
 
+## Migration source integrity
+
+A separate repository/database reconciliation found 57 applied migrations in the new Supabase project, while only 8 migration SQL files are present in the repository. Seven match the database history exactly, one has a filename mismatch, and 49 applied migrations have no same-version source file. The live schema is present, but the repository cannot yet reproduce it from its committed migration history. Do not reset the database or replay historical migrations to address this. Recover exact sources or create a reviewed reconstructed baseline and test it against a disposable database first. See [migration source reconciliation](MIGRATION_SOURCE_RECONCILIATION_2026-11-04.md).
+
 ## Release gate
 
 A green CI build is necessary but is not equivalent to production readiness. The project remains blocked on real authorized identities, reviewed station records, station-specific evidence for missing coordinates, operational verification, and end-to-end acceptance tests.
