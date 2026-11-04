@@ -138,8 +138,10 @@ Deno.serve(async (request: Request) => {
 
     const userIds = [...new Set(requestRows.map((item) => String(item.user_id)))];
     const stationIds = [...new Set(requestRows.map((item) => String(item.requested_station_id)))];
+    const roleCodes = [...new Set(requestRows.map((item) => String(item.requested_role_code)))];
     const profileMap = new Map<string, Record<string, unknown>>();
     const stationMap = new Map<string, Record<string, unknown>>();
+    const roleMap = new Map<string, Record<string, unknown>>();
     for (const batch of chunkValues(userIds, 200)) {
       const { data: profiles, error: profileError } = await admin
         .from("metra_user_profiles")
@@ -156,10 +158,19 @@ Deno.serve(async (request: Request) => {
       if (stationError) return json({ error: "queue_details_failed" }, 500);
       for (const station of stations ?? []) stationMap.set(String(station.id), station);
     }
+    for (const batch of chunkValues(roleCodes, 200)) {
+      const { data: roles, error: roleError } = await admin
+        .from("metra_role_catalogue")
+        .select("role_code,name_ar,name_en,is_active")
+        .in("role_code", batch);
+      if (roleError) return json({ error: "queue_details_failed" }, 500);
+      for (const role of roles ?? []) roleMap.set(String(role.role_code), role);
+    }
     const items = requestRows.map((item) => ({
       ...item,
       applicant: profileMap.get(String(item.user_id)) ?? null,
       station: stationMap.get(String(item.requested_station_id)) ?? null,
+      requested_role: roleMap.get(String(item.requested_role_code)) ?? null,
       review_stage: item.status === "pending_station_approval" ? "station" : "system",
     }));
     return json({ items, permissions: [...permissions].filter((p) => p.startsWith("registrations.")) });
