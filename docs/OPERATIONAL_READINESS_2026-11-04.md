@@ -86,7 +86,7 @@ These labels are not sufficient by themselves to establish a reliable mapping to
 
 ## Migration source integrity
 
-A separate repository/database reconciliation found 57 applied migrations in the new Supabase project, while only 8 migration SQL files are present in the repository. Seven match the database history exactly, one has a filename mismatch, and 49 applied migrations have no same-version source file. The live schema is present, but the repository cannot yet reproduce it from its committed migration history. Do not reset the database or replay historical migrations to address this. Recover exact sources or create a reviewed reconstructed baseline and test it against a disposable database first. See [migration source reconciliation](MIGRATION_SOURCE_RECONCILIATION_2026-11-04.md).
+A separate repository/database reconciliation found 57 applied migrations in the new Supabase project, while only 8 migration SQL files are present in the repository. All 8 match the database history exactly, while 49 applied migrations have no same-version source file. The live schema is present, but the repository cannot yet reproduce it from its committed migration history. Do not reset the database or replay historical migrations to address this. Recover exact sources or create a reviewed reconstructed baseline and test it against a disposable database first. See [migration source reconciliation](MIGRATION_SOURCE_RECONCILIATION_2026-11-04.md).
 
 ## Release gate
 
