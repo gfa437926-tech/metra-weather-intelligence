@@ -30,4 +30,23 @@ void main() {
   });
   expect(snapshot.condition,'عواصف رعدية');
  });
+ test('rejects missing or empty daily temperature arrays', () {
+  expect(
+   () => WeatherSnapshot.fromJson({
+    'current': {'temperature_2m': 1, 'apparent_temperature': 1, 'relative_humidity_2m': 1, 'wind_speed_10m': 1, 'surface_pressure': 1, 'weather_code': 0},
+    'daily': {'temperature_2m_max': [], 'temperature_2m_min': [0]},
+   }),
+   throwsFormatException,
+  );
+ });
+ test('rejects non-finite provider measurements', () {
+  expect(
+   () => WeatherSnapshot.fromJson({
+    'current': {'temperature_2m': double.nan, 'apparent_temperature': 1, 'relative_humidity_2m': 1, 'wind_speed_10m': 1, 'surface_pressure': 1, 'weather_code': 0},
+    'daily': {'temperature_2m_max': [2], 'temperature_2m_min': [0]},
+   }),
+   throwsFormatException,
+  );
+ });
+
 }
