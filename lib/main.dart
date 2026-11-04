@@ -489,6 +489,7 @@ class _StationsPageState extends State<StationsPage> {
             final withoutCoordinates = all.where((s) => !s.hasCoordinates).length;
             final pendingApproval = all.where((s) => s.normalizedApprovalStatus != 'approved').length;
             final unverified = all.where((s) => s.normalizedOperationalStatus == 'unverified').length;
+            final unknownType = all.where((s) => !s.isClassic && !s.isAutomatic).length;
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Expanded(child: Text('الدليل الموحد', style: TextStyle(color: ink, fontWeight: FontWeight.bold))),
@@ -527,6 +528,7 @@ class _StationsPageState extends State<StationsPage> {
                 _StationCountChip(label: 'بلا إحداثيات', count: withoutCoordinates, color: Colors.deepOrange),
                 _StationCountChip(label: 'بانتظار الاعتماد', count: pendingApproval, color: Colors.orange.shade800),
                 _StationCountChip(label: 'غير متحقق تشغيلياً', count: unverified, color: Colors.blueGrey),
+                _StationCountChip(label: 'نوع غير مصنف', count: unknownType, color: Colors.blueGrey),
               ]),
               const SizedBox(height: 10),
               if (visible.isEmpty) const _StationMessage(icon: Icons.sensors_off,
