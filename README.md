@@ -37,6 +37,7 @@ supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy observations --project-ref tbdnklyxjvbrilvnwgmq
+supabase functions deploy station-review --project-ref tbdnklyxjvbrilvnwgmq
 ```
 Keep JWT verification enabled for all four functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/20261104014631_registration_authenticated_entrypoint.sql` and `supabase/migrations/20261104014827_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/20261104015029_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/20261104015823_restrict_registration_rpc_to_server_runtime.sql`.
 
@@ -47,7 +48,7 @@ Keep JWT verification enabled for all four functions. The registration SQL entry
 - No initial administrator or approval grants are fabricated by the application. Provision the first authorized administrator and station reviewers through a controlled administrative procedure before production onboarding. Never grant broad permissions to arbitrary accounts.
 
 ## Data integrity and current integrations
-- The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
+- The home screen current conditions and hourly forecast use Open-Meteo for Damascus (33.5138, 36.2765; `Asia/Damascus`). These are model/provider forecast values, not METRA station telemetry.
 - Station catalogue records and coordinates are read from the new Supabase project through the authenticated Edge Function.
 - The map uses OpenStreetMap tiles. Overlapping identical coordinates are grouped; selecting a marker opens every station record at that location, including classic, automatic and unclassified stations. Invalid or expired coordinates are not plotted.
 - Current coordinate history is paginated and validated; an invalid newest coordinate does not hide an older valid coordinate.
@@ -66,7 +67,7 @@ The new METRA database now contains registration submission and two-stage decisi
 
 ## CI
 GitHub Actions runs:
-1. Type-checks the `station-directory`, `registration`, `registration-approvals`, and `observations` Edge Functions with Deno.
+1. Type-checks the `station-directory`, `registration`, `registration-approvals`, `observations`, and `station-review` Edge Functions with Deno.
 2. Tests the station-directory permission rules with Deno.
 3. `flutter pub get`
 4. `flutter analyze`
