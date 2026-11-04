@@ -63,6 +63,8 @@ Deno.serve(async (request: Request) => {
 
   const stationMap = new Map((stationRows ?? []).map((station) => [String(station.id), station]));
   const createStationIds: string[] = [];
+  const approveStationIds: string[] = [];
+  const returnStationIds: string[] = [];
   const reviewStationIds: string[] = [];
   for (const stationId of stationMap.keys()) {
     const checks = await Promise.all([
@@ -78,6 +80,8 @@ Deno.serve(async (request: Request) => {
     ]);
     if (checks.some((result) => result.error)) return json({ error: "station_permission_check_failed" }, 500);
     if (checks[0].data === true) createStationIds.push(stationId);
+    if (checks[1].data === true) approveStationIds.push(stationId);
+    if (checks[2].data === true) returnStationIds.push(stationId);
     if (checks[1].data === true || checks[2].data === true) reviewStationIds.push(stationId);
   }
 
@@ -104,7 +108,12 @@ Deno.serve(async (request: Request) => {
     };
     return json({
       own: (ownResult.data ?? []).map((item) => ({ ...item, station: stationDetails(String(item.station_id)) })),
-      review: (reviewResult.data ?? []).map((item) => ({ ...item, station: stationDetails(String(item.station_id)) })),
+      review: (reviewResult.data ?? []).map((item) => ({
+        ...item,
+        station: stationDetails(String(item.station_id)),
+        can_approve: approveStationIds.includes(String(item.station_id)),
+        can_return: returnStationIds.includes(String(item.station_id)),
+      })),
       stations: createStationIds.map((id) => stationMap.get(id)),
     });
   }
