@@ -10,6 +10,11 @@ void main() {
     final client = MockClient((request) async {
       expect(request.url.host, 'api.open-meteo.com');
       expect(request.url.queryParameters['latitude'], '24.7136');
+      expect(request.url.queryParameters['timezone'], 'Asia/Riyadh');
+      expect(request.url.queryParameters['current'], isNotNull);
+      expect(request.url.queryParameters['daily'], isNotNull);
+      expect(request.url.queryParameters.containsKey('hourly'), isFalse,
+          reason: 'Hourly forecast is fetched separately to avoid duplicate payloads.');
       return http.Response(jsonEncode({
         'current': {
           'temperature_2m': 30,
