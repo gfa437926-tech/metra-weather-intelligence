@@ -19,8 +19,18 @@ class StationDirectoryService {
     return parseStationRows(data['stations']);
   }
 
-  Future<AccessContext> fetchAccessContext() async =>
-      AccessContext.fromJson(await _fetchPayload());
+  Future<AccessContext> fetchAccessContext() async {
+    final response = await _client.functions.invoke(
+      'station-directory',
+      body: const {'include_stations': false},
+    );
+    if (response.status != 200 || response.data is! Map) {
+      throw const StationDirectoryException('تعذر تحميل صلاحيات الحساب من الخدمة الآمنة.');
+    }
+    return AccessContext.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
 }
 
 List<StationRecord> parseStationRows(Object? value) {

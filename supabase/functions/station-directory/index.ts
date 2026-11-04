@@ -12,6 +12,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "GET" && request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  let includeStations = true;
+  if (request.method === "POST") {
+    const payload = await request.json().catch(() => ({}));
+    if (payload && typeof payload === "object" && payload.include_stations === false) {
+      includeStations = false;
+    }
+  }
   const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "unauthorized" }, 401);
 
@@ -85,10 +92,17 @@ Deno.serve(async (request: Request) => {
     ...(directGrants ?? []).map((item) => String(item.permission_code)),
   ])].sort();
 
+  const canReadStations = effectivePermissions.includes("stations.read") ||
+    effectivePermissions.includes("station.read");
+  if (includeStations && !canReadStations) {
+    return json({ error: "permission_denied", required_permission: "stations.read" }, 403);
+  }
+
+  // Access context can be fetched separately without granting directory access.
   // Fetch in pages so the directory is not silently truncated at 1,000 records.
   const stations: Record<string, unknown>[] = [];
   const pageSize = 1000;
-  for (let offset = 0; ; offset += pageSize) {
+  for (let offset = 0; includeStations; offset += pageSize) {
     const { data: page, error: stationError } = await admin
       .from("station_catalogue")
       .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,is_demo")
@@ -136,6 +150,7 @@ Deno.serve(async (request: Request) => {
   }));
   return json({
     stations: result,
+    station_access: includeStations && canReadStations,
     total: result.length,
     with_coordinates: result.filter((station) => station.latitude !== null && station.longitude !== null).length,
     access: {
