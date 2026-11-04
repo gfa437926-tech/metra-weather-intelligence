@@ -93,31 +93,46 @@ Deno.serve(async (request: Request) => {
   }
 
   if (action === "list") {
-    const [ownResult, reviewResult] = await Promise.all([
-      admin.from("metra_observations")
-        .select("id,station_id,created_by,observation_type,observed_at,payload,status,submitted_at,reviewed_at,review_note")
-        .eq("created_by", userId).order("created_at", { ascending: false }).limit(100),
-      reviewStationIds.length
-        ? admin.from("metra_observations")
-          .select("id,station_id,created_by,observation_type,observed_at,payload,status,submitted_at,reviewed_at,review_note")
-          .in("station_id", reviewStationIds).eq("status", "submitted")
-          .neq("created_by", userId).order("submitted_at", { ascending: true }).limit(200)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
-    if (ownResult.error || reviewResult.error) return json({ error: "observation_list_failed" }, 500);
+    // Fetch complete observation history and review queues in bounded pages.
+    // A fixed .limit(100/200) silently hid older records as the system grew.
+    const own: Record<string, unknown>[] = [];
+    const review: Record<string, unknown>[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: page, error } = await admin.from("metra_observations")
+        .select("id,station_id,created_by,observation_type,observed_at,payload,status,submitted_at,reviewed_at,review_note,created_at")
+        .eq("created_by", userId)
+        .order("created_at", { ascending: false }).order("id", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) return json({ error: "observation_list_failed" }, 500);
+      own.push(...(page ?? []));
+      if (!page || page.length < pageSize) break;
+    }
+    for (let offset = 0; reviewStationIds.length > 0; offset += pageSize) {
+      const { data: page, error } = await admin.from("metra_observations")
+        .select("id,station_id,created_by,observation_type,observed_at,payload,status,submitted_at,reviewed_at,review_note,created_at")
+        .in("station_id", reviewStationIds).eq("status", "submitted")
+        .neq("created_by", userId)
+        .order("submitted_at", { ascending: true }).order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) return json({ error: "observation_list_failed" }, 500);
+      review.push(...(page ?? []));
+      if (!page || page.length < pageSize) break;
+    }
     const stationDetails = (id: string) => {
       const station = stationMap.get(id);
       return station ? { id, code: station.local_station_code, name: station.name_ar } : { id, code: "", name: "محطة" };
     };
     return json({
-      own: (ownResult.data ?? []).map((item) => ({ ...item, station: stationDetails(String(item.station_id)) })),
-      review: (reviewResult.data ?? []).map((item) => ({
+      own: own.map((item) => ({ ...item, station: stationDetails(String(item.station_id)) })),
+      review: review.map((item) => ({
         ...item,
         station: stationDetails(String(item.station_id)),
         can_approve: approveStationIds.includes(String(item.station_id)),
         can_return: returnStationIds.includes(String(item.station_id)),
       })),
       stations: createStationIds.map((id) => stationMap.get(id)),
+      totals: { own: own.length, review: review.length },
     });
   }
 
@@ -173,7 +188,15 @@ Deno.serve(async (request: Request) => {
       if (error.code === "42501") return json({ error: "observation_permission_denied" }, 403);
       return json({ error: "observation_decision_failed" }, 400);
     }
-    return json({ result: data ?? null });
+    if (!isObject(data) || data.id !== observationId ||
+        !["approved", "returned"].includes(String(data.status))) {
+      return json({ error: "observation_decision_unconfirmed" }, 502);
+    }
+    const expectedStatus = decision === "approve" ? "approved" : "returned";
+    if (data.status !== expectedStatus) {
+      return json({ error: "observation_decision_unconfirmed" }, 502);
+    }
+    return json({ result: data });
   }
 
   return json({ error: "unsupported_action" }, 400);
