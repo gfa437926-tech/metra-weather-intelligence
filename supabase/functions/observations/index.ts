@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { isValidObservationPayload, isValidObservedAt } from "./validation.ts";
+import { isValidObservationPayload, isValidObservedAt, isValidObservationSubmissionResult } from "./validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -164,7 +164,11 @@ Deno.serve(async (request: Request) => {
       if (error.code === "42501") return json({ error: "observation_permission_denied" }, 403);
       return json({ error: "observation_submit_failed" }, 400);
     }
-    return json({ result: data ?? null });
+    const expectedStatus = submit ? "submitted" : "draft";
+    if (!isValidObservationSubmissionResult(data, expectedStatus)) {
+      return json({ error: "observation_submission_unconfirmed" }, 502);
+    }
+    return json({ result: data });
   }
 
   if (action === "decide") {
