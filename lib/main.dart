@@ -8,6 +8,7 @@ import 'domain/station_cluster.dart';
 import 'domain/access_context.dart';
 import 'data/weather_service.dart';
 import 'domain/weather_snapshot.dart';
+import 'screens/registration_flow.dart';
 
 SupabaseClient? metraSupabaseClient;
 Future<void> main() async {
@@ -465,7 +466,7 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: client.auth.onAuthStateChange,
       builder: (context, snapshot) => client.auth.currentSession != null
-          ? const Shell()
+          ? const RegistrationGate()
           : const SignInPage(),
     );
   }
@@ -532,6 +533,12 @@ class _SignInPageState extends State<SignInPage> {
           const SizedBox(height: 12),
           const Text('تخضع الحسابات للتحقق واعتماد الصلاحيات قبل الوصول إلى بيانات المحطات.',
             textAlign: TextAlign.center, style: TextStyle(color: Colors.blueGrey, fontSize: 12)),
+          TextButton(
+            onPressed: busy ? null : () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SignUpPage()),
+            ),
+            child: const Text('إنشاء حساب جديد'),
+          ),
         ]),
       ),
     ))),
