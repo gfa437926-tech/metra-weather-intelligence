@@ -91,11 +91,15 @@ class _StationReviewPageState extends State<StationReviewPage> {
         throw Exception(_message(response.data));
       }
       final result = (response.data as Map)['result'];
-      if (result is Map && result['result_status'] == 'state_conflict') {
-        throw Exception('تغيرت حالة المحطة بواسطة مراجع آخر. حدّث القائمة.');
-      }
       if (result is! Map) {
         throw Exception('لم يرجع الخادم نتيجة مؤكدة لقرار المراجعة. حدّث القائمة قبل المتابعة.');
+      }
+      if (result['result_status'] == 'state_conflict') {
+        throw Exception('تغيرت حالة المحطة بواسطة مراجع آخر. حدّث القائمة.');
+      }
+      if (result['result_status'] != 'updated' ||
+          result['resulting_status'] != decision) {
+        throw Exception('لم يؤكد الخادم حفظ القرار المطلوب. حدّث القائمة قبل المتابعة.');
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تسجيل القرار وسجل التدقيق.')));
