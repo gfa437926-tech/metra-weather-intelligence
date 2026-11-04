@@ -16,8 +16,8 @@ class WeatherService {
       'longitude': '46.6753',
       'current': 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure',
       'daily': 'temperature_2m_max,temperature_2m_min',
-      'hourly': 'temperature_2m,weather_code',
-      'forecast_hours': '24',
+      
+      
       'timezone': 'Asia/Riyadh',
       'forecast_days': '1',
     });
