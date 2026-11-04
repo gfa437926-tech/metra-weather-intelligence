@@ -49,4 +49,28 @@ void main() {
   );
  });
 
+ test('rejects physically invalid humidity, wind and pressure values', () {
+  Map<String, dynamic> payload({
+   num humidity = 40,
+   num wind = 2,
+   num pressure = 1000,
+  }) => {
+   'current': {'temperature_2m': 1, 'apparent_temperature': 1, 'relative_humidity_2m': humidity, 'wind_speed_10m': wind, 'surface_pressure': pressure, 'weather_code': 0},
+   'daily': {'temperature_2m_max': [2], 'temperature_2m_min': [0]},
+  };
+  expect(() => WeatherSnapshot.fromJson(payload(humidity: 101)), throwsFormatException);
+  expect(() => WeatherSnapshot.fromJson(payload(humidity: -1)), throwsFormatException);
+  expect(() => WeatherSnapshot.fromJson(payload(wind: -0.1)), throwsFormatException);
+  expect(() => WeatherSnapshot.fromJson(payload(pressure: 0)), throwsFormatException);
+ });
+ test('rejects weather codes outside the WMO code range', () {
+  expect(
+   () => WeatherSnapshot.fromJson({
+    'current': {'temperature_2m': 1, 'apparent_temperature': 1, 'relative_humidity_2m': 40, 'wind_speed_10m': 1, 'surface_pressure': 1000, 'weather_code': 100},
+    'daily': {'temperature_2m_max': [2], 'temperature_2m_min': [0]},
+   }),
+   throwsFormatException,
+  );
+ });
+
 }
