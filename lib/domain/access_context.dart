@@ -7,6 +7,13 @@ class AccessContext {
   final List<String> roleCodes;
   final List<String> permissionCodes;
 
+  bool allows(String permissionCode) {
+    final requested = permissionCode.trim();
+    return requested.isNotEmpty && permissionCodes.contains(requested);
+  }
+
+  bool hasAnyPermission(Iterable<String> candidates) => candidates.any(allows);
+
   factory AccessContext.fromJson(Map<String, dynamic> json) {
     final access = json['access'];
     if (access is! Map) return const AccessContext();

@@ -58,4 +58,24 @@ void main() {
     expect(context.roleCodes, isEmpty);
     expect(context.permissionCodes, isEmpty);
   });
+
+  test('allows only explicitly assigned permission codes', () {
+    const context = AccessContext(permissionCodes: ['stations.read', 'reports.read']);
+    expect(context.allows('stations.read'), isTrue);
+    expect(context.allows('stations.delete'), isFalse);
+    expect(context.allows(''), isFalse);
+    expect(context.allows(' stations.read '), isTrue);
+  });
+
+  test('checks aliases without granting unrelated permissions', () {
+    const context = AccessContext(permissionCodes: ['station.read']);
+    expect(context.hasAnyPermission(['stations.read', 'station.read']), isTrue);
+    expect(context.hasAnyPermission(['stations.update', 'stations.delete']), isFalse);
+  });
+
+  test('empty access context denies all permissions', () {
+    const context = AccessContext();
+    expect(context.allows('stations.read'), isFalse);
+    expect(context.hasAnyPermission(['stations.read', 'reports.read']), isFalse);
+  });
 }

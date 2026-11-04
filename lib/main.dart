@@ -582,7 +582,8 @@ class _StationsPageState extends State<StationsPage> {
             final visible = all.where((station) {
               final typeMatches = filter == 'الكل' ||
                 (filter == 'كلاسيكية' && station.isClassic) ||
-                (filter == 'آلية' && station.isAutomatic);
+                (filter == 'آلية' && station.isAutomatic) ||
+                (filter == 'غير مصنفة' && !station.isClassic && !station.isAutomatic);
               final needle = query.trim().toLowerCase();
               final textMatches = needle.isEmpty ||
                 station.name.toLowerCase().contains(needle) ||
@@ -619,7 +620,7 @@ class _StationsPageState extends State<StationsPage> {
               ),
               const SizedBox(height: 10),
               Wrap(spacing: 8, children: [
-                for (final item in ['الكل', 'كلاسيكية', 'آلية'])
+                for (final item in ['الكل', 'كلاسيكية', 'آلية', 'غير مصنفة'])
                   ChoiceChip(label: Text(item), selected: filter == item,
                     onSelected: (_) => setState(() => filter = item)),
               ]),
