@@ -732,6 +732,23 @@ class _SettingsPageState extends State<SettingsPage> {
               'statistics_director': 'رئيس دائرة الإحصاء',
               'aftn_operator': 'مسؤول دائرة AFTN',
             };
+            const permissionLabels = {
+              'stations.read': 'عرض المحطات',
+              'stations.create': 'إضافة محطة',
+              'stations.update': 'تعديل بيانات المحطات',
+              'stations.delete': 'حذف محطة',
+              'stations.approve': 'اعتماد المحطات',
+              'observations.read': 'عرض الرصد الجوي',
+              'observations.create': 'إدخال الرصد الجوي',
+              'observations.update': 'تعديل الرصد الجوي',
+              'observations.audit': 'تدقيق الرصد الجوي',
+              'alerts.read': 'عرض التنبيهات',
+              'users.read': 'عرض المستخدمين',
+              'users.manage': 'إدارة المستخدمين',
+              'roles.manage': 'إدارة الأدوار والصلاحيات',
+              'reports.read': 'عرض التقارير',
+              'reports.export': 'تصدير التقارير',
+            };
             return Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 14),
@@ -764,7 +781,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (access.permissionCodes.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 5),
-                      child: Text(access.permissionCodes.join(' • '),
+                      child: Text(access.permissionCodes.map((code) => permissionLabels[code] ?? code).join(' • '),
                         style: const TextStyle(color: Colors.blueGrey, fontSize: 10)),
                     ),
                 ],
