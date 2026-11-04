@@ -8,15 +8,15 @@ Repository: `gfa437926-tech/metra-weather-intelligence2026`, branch `main`
 
 - Database migration history contains **57** applied migrations.
 - The repository contains **8** SQL migration files.
-- **7** repository files match both the database migration version and name exactly.
-- **1** migration has a matching version but a different filename.
+- **8** repository files match both the database migration version and name exactly.
+- **0** migrations have a matching version but a different filename.
 - **49** applied migrations have no same-version SQL source file in the repository.
 
 This is a migration-source drift issue. It does not mean the database schema is absent; the database currently has the applied objects. It means the repository is not a complete reproducible history of how the database reached its current state.
 
 ## Filename mismatch
 
-- Database history: `20261104030506_004_station_catalogue_review_permission`; repository file: `supabase/migrations/20261104030506_station_catalogue_review_permission.sql`
+None. The migration source filename was aligned with the database history in commit `c563187b509190b254038d1aa8a358b6ff7a0c12`.
 
 ## Applied migrations with no same-version source file
 
