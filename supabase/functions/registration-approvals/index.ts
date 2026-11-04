@@ -51,6 +51,7 @@ Deno.serve(async (request: Request) => {
   const action = payload && typeof payload.action === "string" ? payload.action : "";
 
   if (action === "queue") {
+    if (!canReviewStation && !canReviewSystem) return json({ error: "permission_denied" }, 403);
     const requestRows: Record<string, unknown>[] = [];
     if (canReviewStation) {
       const { data: assignments, error } = await admin

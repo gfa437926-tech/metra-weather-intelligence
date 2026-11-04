@@ -18,6 +18,8 @@ jobs:
         run: deno check --no-lock supabase/functions/station-directory/index.ts
       - name: Type-check registration Edge Function
         run: deno check --no-lock supabase/functions/registration/index.ts
+      - name: Type-check registration approvals Edge Function
+        run: deno check --no-lock supabase/functions/registration-approvals/index.ts
       - name: Test Supabase Edge Function permission rules
         run: deno test --no-lock supabase/functions/station-directory/permissions_test.ts
       - uses: subosito/flutter-action@v2
