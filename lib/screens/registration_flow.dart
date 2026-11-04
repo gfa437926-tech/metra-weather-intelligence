@@ -298,13 +298,20 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 child: Text(
                   (x['name_ar'] ?? '') .toString() + ' • ' +
                   (x['code'] ?? '').toString() + ' • ' +
-                  (x['approval_status'] == 'approved' ? 'معتمدة' : 'قيد الاعتماد'),
+                  (x['approval_status'] == 'approved' ? 'معتمدة' : 'قيد الاعتماد') + ' • ' +
+                  (x['operational_status'] == 'active' ? 'تشغيلية' :
+                    x['operational_status'] == 'inactive' ? 'متوقفة' : 'غير متحقق'),
                   overflow: TextOverflow.ellipsis,
                 ),
               )).toList(),
               onChanged: busy ? null : (value) => setState(() => station = value),
             ),
             if (stations.isEmpty) const _InlineNotice('لا توجد محطات متاحة حالياً.', true),
+            if (stations.any((item) => item['approval_status'] != 'approved' || item['operational_status'] != 'active'))
+              const _InlineNotice(
+                'تنبيه: لا يمكن إكمال اعتماد الانتساب لمحطة قبل اعتماد سجلها والتحقق من حالتها التشغيلية. ستظل الطلبات مرتبطة بمراجعة الجهة المختصة.',
+                true,
+              ),
             const SizedBox(height: 10),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
