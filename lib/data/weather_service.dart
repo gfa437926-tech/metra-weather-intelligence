@@ -10,13 +10,13 @@ class WeatherService {
   static final http.Client _sharedClient = http.Client();
   final http.Client _client;
 
-  Future<WeatherSnapshot> fetchRiyadh() async {
+  Future<WeatherSnapshot> fetchDamascus() async {
     final uri = Uri.https('api.open-meteo.com', '/v1/forecast', {
-      'latitude': '24.7136',
-      'longitude': '46.6753',
+      'latitude': '33.5138',
+      'longitude': '36.2765',
       'current': 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure',
       'daily': 'temperature_2m_max,temperature_2m_min',
-      'timezone': 'Asia/Riyadh',
+      'timezone': 'Asia/Damascus',
       'forecast_days': '1',
     });
     final response = await _get(uri);
@@ -28,13 +28,13 @@ class WeatherService {
     }
   }
 
-  Future<List<HourlyForecast>> fetchHourlyRiyadh() async {
+  Future<List<HourlyForecast>> fetchHourlyDamascus() async {
     final uri = Uri.https('api.open-meteo.com', '/v1/forecast', {
-      'latitude': '24.7136',
-      'longitude': '46.6753',
+      'latitude': '33.5138',
+      'longitude': '36.2765',
       'hourly': 'temperature_2m,weather_code',
       'forecast_hours': '24',
-      'timezone': 'Asia/Riyadh',
+      'timezone': 'Asia/Damascus',
     });
     final response = await _get(uri);
     final decoded = _decodeObject(response.body, 'Invalid forecast response');
