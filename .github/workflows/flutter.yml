@@ -28,6 +28,8 @@ jobs:
         run: deno test --no-lock supabase/functions/observations/validation_test.ts
       - name: Type-check station catalogue review Edge Function
         run: deno check --no-lock supabase/functions/station-review/index.ts
+      - name: Test station catalogue review validation
+        run: deno test --no-lock supabase/functions/station-review/validation_test.ts
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
