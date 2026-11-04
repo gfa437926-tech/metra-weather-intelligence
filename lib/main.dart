@@ -178,6 +178,107 @@ class _MapPageState extends State<MapPage> {
     if (client != null) future = StationDirectoryService(client).fetchStations();
   }
 
+  void _showStationCluster(BuildContext context, List<StationRecord> stations) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: canvas,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: Text(
+                      'المحطات في هذا الموقع (${stations.length})',
+                      style: const TextStyle(color: ink, fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'إغلاق',
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.62,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: stations.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 7),
+                    itemBuilder: (context, index) {
+                      final station = stations[index];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: station.isClassic
+                                ? const Color(0xFFFFF0DA)
+                                : station.isAutomatic
+                                    ? const Color(0xFFE7F1FF)
+                                    : const Color(0xFFECEFF3),
+                            child: Icon(
+                              station.isClassic
+                                  ? Icons.home_work_outlined
+                                  : station.isAutomatic
+                                      ? Icons.sensors
+                                      : Icons.device_unknown,
+                              size: 18,
+                              color: station.isClassic
+                                  ? const Color(0xFFB97716)
+                                  : station.isAutomatic
+                                      ? blue
+                                      : Colors.blueGrey,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(station.name, style: const TextStyle(color: ink, fontWeight: FontWeight.bold)),
+                                Text(
+                                  '${station.typeLabel} • ${station.code}',
+                                  style: const TextStyle(color: Colors.blueGrey, fontSize: 11),
+                                ),
+                                Text(
+                                  '${station.approvalLabel} • ${station.operationalLabel}',
+                                  style: const TextStyle(color: Colors.blueGrey, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     title: 'خريطة الطقس',
@@ -234,7 +335,10 @@ class _MapPageState extends State<MapPage> {
                         message: members.map((s) =>
                           '${s.name} • ${s.typeLabel} • ${s.approvalLabel} • ${s.operationalLabel}'
                         ).join('\n'),
-                        child: Container(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _showStationCluster(context, members),
+                          child: Container(
                           decoration: BoxDecoration(
                             color: color,
                             shape: BoxShape.circle,
@@ -251,6 +355,7 @@ class _MapPageState extends State<MapPage> {
                                         ? 'آ'
                                         : '?',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
                           ),
                         ),
                       ),
