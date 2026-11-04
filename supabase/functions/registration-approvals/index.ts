@@ -145,7 +145,7 @@ Deno.serve(async (request: Request) => {
     for (const batch of chunkValues(userIds, 200)) {
       const { data: profiles, error: profileError } = await admin
         .from("metra_user_profiles")
-        .select("user_id,first_name,father_name,last_name,phone")
+        .select("user_id,first_name,father_name,last_name")
         .in("user_id", batch);
       if (profileError) return json({ error: "queue_details_failed" }, 500);
       for (const profile of profiles ?? []) profileMap.set(String(profile.user_id), profile);
