@@ -130,6 +130,10 @@ class _SignUpPageState extends State<SignUpPage> {
               decoration: const InputDecoration(labelText: 'كلمة المرور (8 محارف على الأقل)', border: OutlineInputBorder())),
             if (error != null) _InlineNotice(error!, true),
             if (message != null) _InlineNotice(message!, false),
+            if (message != null) TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('متابعة'),
+            ),
             const SizedBox(height: 16),
             SizedBox(width: double.infinity, child: FilledButton(
               onPressed: busy ? null : submit,
