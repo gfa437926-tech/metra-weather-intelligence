@@ -392,3 +392,202 @@ class _InlineNotice extends StatelessWidget {
     child: Text(text, style: TextStyle(color: error ? Colors.red.shade800 : Colors.green.shade800)),
   );
 }
+
+
+class RegistrationApprovalsPage extends StatefulWidget {
+  const RegistrationApprovalsPage({super.key});
+  @override
+  State<RegistrationApprovalsPage> createState() => _RegistrationApprovalsPageState();
+}
+
+class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
+  late Future<List<Map<String, dynamic>>> queue;
+
+  @override
+  void initState() {
+    super.initState();
+    queue = loadQueue();
+  }
+
+  Future<List<Map<String, dynamic>>> loadQueue() async {
+    final response = await Supabase.instance.client.functions.invoke(
+      'registration-approvals', body: const {'action': 'queue'},
+    );
+    if (response.status != 200 || response.data is! Map) {
+      throw Exception('تعذر تحميل قائمة الاعتمادات أو لا توجد صلاحية للمراجعة.');
+    }
+    final data = Map<String, dynamic>.from(response.data as Map);
+    return (data['items'] as List? ?? const [])
+      .whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
+  Future<String?> requestNote({required bool requiredNote}) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(requiredNote ? 'سبب رفض الطلب' : 'ملاحظة المراجعة (اختياري)'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            maxLength: 2000,
+            decoration: const InputDecoration(
+              hintText: 'اكتب ملاحظة للمراجعة...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text.trim();
+                if (requiredNote && value.isEmpty) return;
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('متابعة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> decide(Map<String, dynamic> item, String decision) async {
+    final note = await requestNote(requiredNote: decision == 'reject');
+    if (note == null) return;
+    final expected = item['status']?.toString() ?? '';
+    try {
+      final response = await Supabase.instance.client.functions.invoke(
+        'registration-approvals',
+        body: {
+          'action': 'decide',
+          'request_id': item['id'],
+          'expected_status': expected,
+          'decision': decision,
+          'note': note,
+        },
+      );
+      if (response.status != 200 || response.data is! Map) {
+        throw Exception('تعذر تنفيذ قرار الاعتماد. ربما تغيرت حالة الطلب.');
+      }
+      final body = Map<String, dynamic>.from(response.data as Map);
+      final result = body['result'];
+      final resultStatus = result is Map ? result['result_status']?.toString() : null;
+      if (resultStatus == 'committed') {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ قرار المراجعة وتسجيله في سجل التدقيق.')),
+        );
+        if (mounted) setState(() => queue = loadQueue());
+      } else if (resultStatus == 'conflict') {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تغيرت حالة الطلب. تم تحديث القائمة.')),
+        );
+        if (mounted) setState(() => queue = loadQueue());
+      } else {
+        throw Exception('لم يتم قبول القرار. تحقق من الصلاحية ومرحلة الاعتماد.');
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  String applicantName(Map? profile) {
+    if (profile == null) return 'مقدم طلب';
+    return [
+      profile['first_name'], profile['father_name'], profile['last_name'],
+    ].where((value) => value is String && value.trim().isNotEmpty).join(' ');
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('اعتمادات طلبات الانتساب'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث القائمة',
+            onPressed: () => setState(() => queue = loadQueue()),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: queue,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _MessagePage(
+              title: 'تعذر تحميل الاعتمادات',
+              message: snapshot.error.toString().replaceFirst('Exception: ', ''),
+              action: 'إعادة المحاولة',
+              onAction: () => setState(() => queue = loadQueue()),
+            );
+          }
+          final items = snapshot.data ?? const <Map<String, dynamic>>[];
+          if (items.isEmpty) {
+            return const _MessagePage(
+              title: 'لا توجد طلبات بانتظارك',
+              message: 'لا توجد طلبات ضمن نطاق المحطات أو مرحلة الاعتماد الممنوحة لحسابك حالياً.',
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final profile = item['applicant'] is Map ? item['applicant'] as Map : null;
+              final station = item['station'] is Map ? item['station'] as Map : null;
+              final stage = item['review_stage'] == 'station' ? 'اعتماد الجهة / المحطة' : 'الاعتماد النظامي النهائي';
+              final stationName = station?['name_ar']?.toString() ?? 'محطة غير معروفة';
+              final stationCode = station?['local_station_code']?.toString() ?? '';
+              return Card(
+                color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      const Icon(Icons.assignment_ind_outlined, color: Color(0xFF1769D2)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(applicantName(profile),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                    ]),
+                    const SizedBox(height: 8),
+                    Text(stage, style: const TextStyle(color: Color(0xFF1769D2), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 5),
+                    Text('المحطة: ' + stationName + (stationCode.isEmpty ? '' : ' • ' + stationCode)),
+                    Text('الدور المطلوب: ' + (item['requested_role_code']?.toString() ?? 'غير محدد')),
+                    Text('البريد/الهاتف لا يُعرضان هنا؛ بيانات الحساب محمية في شاشة الهوية.'),
+                    const SizedBox(height: 12),
+                    Wrap(spacing: 8, children: [
+                      FilledButton.icon(
+                        onPressed: () => decide(item, 'approve'),
+                        icon: const Icon(Icons.check, size: 18),
+                        label: const Text('اعتماد'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => decide(item, 'reject'),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('رفض'),
+                      ),
+                    ]),
+                  ]),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    ),
+  );
+}

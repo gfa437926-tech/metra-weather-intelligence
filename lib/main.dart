@@ -902,6 +902,23 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Text(access.permissionCodes.map((code) => permissionLabels[code] ?? code).join(' • '),
                         style: const TextStyle(color: Colors.blueGrey, fontSize: 10)),
                     ),
+                  if (access.hasAnyPermission([
+                    'registrations.station.approve',
+                    'registrations.system.approve',
+                  ]))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.fact_check_outlined, color: blue),
+                        title: const Text('اعتمادات طلبات الانتساب'),
+                        subtitle: const Text('مراجعة الطلبات ضمن الصلاحيات الممنوحة', style: TextStyle(fontSize: 11)),
+                        trailing: const Icon(Icons.chevron_left),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const RegistrationApprovalsPage()),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             );
