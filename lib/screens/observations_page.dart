@@ -93,6 +93,11 @@ class _ObservationsPageState extends State<ObservationsPage> {
       if (rain != null) values['precipitation_mm'] = rain;
       final note = description.text.trim();
       if (note.isNotEmpty) values['description'] = note;
+      final hasMeasurement = values.keys.any((key) => key != 'description');
+      if (observationType != 'phenomenon' && !hasMeasurement) {
+        _toast('أدخل قراءة رقمية واحدة على الأقل.');
+        return;
+      }
       if (values.isEmpty) {
         _toast('أدخل قراءة واحدة على الأقل أو وصف الظاهرة.');
         return;
@@ -234,6 +239,7 @@ class _ObservationsPageState extends State<ObservationsPage> {
     final payload = item['payload'] is Map ? Map<String, dynamic>.from(item['payload'] as Map) : <String, dynamic>{};
     final canApprove = item['can_approve'] == true;
     final canReturn = item['can_return'] == true;
+    final observedAt = DateTime.tryParse(item['observed_at']?.toString() ?? '')?.toLocal();
     final values = <String>[
       if (payload['temperature_c'] != null) 'الحرارة ${payload['temperature_c']}°',
       if (payload['humidity_percent'] != null) 'الرطوبة ${payload['humidity_percent']}%',
@@ -255,6 +261,10 @@ class _ObservationsPageState extends State<ObservationsPage> {
             Chip(label: Text(_status(item['status']?.toString()), style: const TextStyle(fontSize: 10))),
           ]),
           Text(_type(item['observation_type']?.toString()), style: const TextStyle(color: Colors.blueGrey, fontSize: 12)),
+          if (observedAt != null) Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Text('وقت الرصد: ${observedAt.year}-${observedAt.month.toString().padLeft(2, '0')}-${observedAt.day.toString().padLeft(2, '0')} ${observedAt.hour.toString().padLeft(2, '0')}:${observedAt.minute.toString().padLeft(2, '0')}', style: const TextStyle(color: Colors.blueGrey, fontSize: 11)),
+          ),
           if (values.isNotEmpty) Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Wrap(spacing: 8, runSpacing: 6, children: values.map((v) => Chip(label: Text(v, style: const TextStyle(fontSize: 11)))).toList()),
