@@ -22,6 +22,7 @@ The web build is generated in `build/web`. GitHub Actions uploads a CI artifact 
 - Registration roles are read from the active, requestable role catalogue. Station choices are marked with their stored approval status.
 - Registration is submitted through the JWT-protected `registration` Edge Function. The function derives the applicant ID from the verified JWT and invokes a server-only RPC using the service-role client.
 - The `registration-approvals` Edge Function exposes only actionable review items allowed by active direct approval grants and approved station assignments. The function derives the reviewer ID from the verified JWT and delegates to the private two-stage approval transaction.
+- The `observations` Edge Function provides station-scoped observation drafts, submission, review queues, approval, and return-for-correction. It verifies the caller JWT, active account, current station assignment and exact observation permission before exposing data or invoking server-only database transactions.
 - The registration RPC wrappers are executable only by `service_role`, not `anon` or `authenticated`. The submission transaction pins the accepted terms version, uses database time, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction. The approval Edge Function verifies the reviewer JWT before invoking the server-only decision RPC; the private transaction rechecks active account, direct grants, station assignment, and independent two-stage review.
 - Station data is fetched through the `station-directory` Edge Function.
 - The function verifies the user's JWT and requires `metra_account_states.account_state = active`.
@@ -35,8 +36,9 @@ Deploy with Supabase CLI:
 supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnwgmq
+supabase functions deploy observations --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for all three functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/20261104014631_registration_authenticated_entrypoint.sql` and `supabase/migrations/20261104014827_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/20261104015029_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/20261104015823_restrict_registration_rpc_to_server_runtime.sql`.
+Keep JWT verification enabled for all four functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/20261104014631_registration_authenticated_entrypoint.sql` and `supabase/migrations/20261104014827_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/20261104015029_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/20261104015823_restrict_registration_rpc_to_server_runtime.sql`.
 
 ## Account and approval bootstrap prerequisites
 - The inspected database currently has 62 non-demo station records, all pending/unverified, 50 coordinate-history rows, zero active METRA accounts, and zero submitted registration requests.
@@ -49,7 +51,8 @@ Keep JWT verification enabled for all three functions. The registration SQL entr
 - Station catalogue records and coordinates are read from the new Supabase project through the authenticated Edge Function.
 - The map uses OpenStreetMap tiles. Overlapping identical coordinates are grouped; selecting a marker opens every station record at that location, including classic, automatic and unclassified stations. Invalid or expired coordinates are not plotted.
 - Current coordinate history is paginated and validated; an invalid newest coordinate does not hide an older valid coordinate.
-- Official weather alerts, station-specific telemetry and radar/precipitation/temperature/wind map layers are not yet connected; the UI reports this rather than inventing data.
+- Operational observation entry and review are available through the authenticated observations service. These are manually entered station readings; no automatic station telemetry is claimed.
+- Official weather alerts and radar/precipitation/temperature/wind map layers are not yet connected; the UI reports this rather than inventing data.
 - Station approval and operational statuses are displayed from stored values. Pending/unverified stations are not presented as operational.
 
 ## Official Saudi weather data integration status
@@ -63,7 +66,7 @@ The new METRA database now contains registration submission and two-stage decisi
 
 ## CI
 GitHub Actions runs:
-1. Type-checks the `station-directory`, `registration`, and `registration-approvals` Edge Functions with Deno.
+1. Type-checks the `station-directory`, `registration`, `registration-approvals`, and `observations` Edge Functions with Deno.
 2. Tests the station-directory permission rules with Deno.
 3. `flutter pub get`
 4. `flutter analyze`
