@@ -229,6 +229,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
         setState(() => error = 'الدور المختار غير متاح لطلبات الانتساب.');
       } else if (status == 'station_not_available') {
         setState(() => error = 'المحطة المختارة غير متاحة.');
+      } else if (status == 'terms_version_invalid') {
+        setState(() => error = 'نسخة الشروط غير محدثة. أعد تحميل النموذج.');
       } else if (status == 'conflict') {
         setState(() => error = 'تعارض في الطلب. أعد تحميل الصفحة.');
       } else {
