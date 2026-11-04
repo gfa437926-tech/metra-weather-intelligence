@@ -38,6 +38,12 @@ supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnw
 ```
 Keep JWT verification enabled for all three functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`, and `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`.
 
+## Account and approval bootstrap prerequisites
+- The inspected database currently has 62 non-demo station records, all pending/unverified, 50 coordinate-history rows, zero active METRA accounts, and zero submitted registration requests.
+- The registration form can create a pending request, but a request cannot advance until its selected station is approved and operationally active.
+- Station-stage reviewers require an active account, the direct `registrations.station.approve` grant, and an approved assignment to the requested station. System-stage reviewers require the separate `registrations.system.approve` grant and must be different from the station-stage reviewer.
+- No initial administrator or approval grants are fabricated by the application. Provision the first authorized administrator and station reviewers through a controlled administrative procedure before production onboarding. Never grant broad permissions to arbitrary accounts.
+
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
 - Station catalogue records and coordinates are read from the new Supabase project through the authenticated Edge Function.
