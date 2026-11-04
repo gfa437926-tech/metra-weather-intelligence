@@ -409,6 +409,7 @@ class RegistrationApprovalsPage extends StatefulWidget {
 
 class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
   late Future<List<Map<String, dynamic>>> queue;
+  final Set<String> processingRequests = <String>{};
 
   @override
   void initState() {
@@ -466,44 +467,83 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
     return result;
   }
 
+  String decisionError(dynamic data) {
+    final code = data is Map ? data['error']?.toString() : null;
+    const messages = {
+      'permission_denied': 'لا تملك صلاحية تنفيذ هذا القرار.',
+      'account_not_active': 'الحساب غير نشط.',
+      'registration_state_conflict': 'تغيرت حالة الطلب بواسطة مراجع آخر. حدّث القائمة.',
+      'registration_request_not_found': 'الطلب غير موجود أو لم يعد متاحاً.',
+      'invalid_decision_payload': 'بيانات القرار غير مكتملة أو غير صالحة.',
+    };
+    return messages[code] ?? 'تعذر تنفيذ قرار الاعتماد. تحقق من الاتصال والصلاحيات.';
+  }
+
+  String? expectedResultingStatus(String stage, String decision) {
+    if (decision == 'reject' &&
+        (stage == 'pending_station_approval' || stage == 'pending_system_approval')) {
+      return 'rejected';
+    }
+    if (decision == 'approve' && stage == 'pending_station_approval') {
+      return 'pending_system_approval';
+    }
+    if (decision == 'approve' && stage == 'pending_system_approval') {
+      return 'active';
+    }
+    return null;
+  }
+
   Future<void> decide(Map<String, dynamic> item, String decision) async {
-    final note = await requestNote(requiredNote: decision == 'reject');
-    if (note == null) return;
-    final expected = item['status']?.toString() ?? '';
+    final requestId = item['id']?.toString() ?? '';
+    if (requestId.isEmpty || processingRequests.contains(requestId)) return;
+    setState(() => processingRequests.add(requestId));
     try {
+      final note = await requestNote(requiredNote: decision == 'reject');
+      if (note == null || !mounted) return;
+      final expected = item['status']?.toString() ?? '';
+      final expectedResult = expectedResultingStatus(expected, decision);
+      if (expectedResult == null) {
+        throw Exception('مرحلة الطلب أو القرار غير صالحين. حدّث القائمة.');
+      }
       final response = await Supabase.instance.client.functions.invoke(
         'registration-approvals',
         body: {
           'action': 'decide',
-          'request_id': item['id'],
+          'request_id': requestId,
           'expected_status': expected,
           'decision': decision,
           'note': note,
         },
       );
       if (response.status != 200 || response.data is! Map) {
-        throw Exception('تعذر تنفيذ قرار الاعتماد. ربما تغيرت حالة الطلب.');
+        throw Exception(decisionError(response.data));
       }
       final body = Map<String, dynamic>.from(response.data as Map);
       final result = body['result'];
-      final resultStatus = result is Map ? result['result_status']?.toString() : null;
-      if (resultStatus == 'committed') {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حفظ قرار المراجعة وتسجيله في سجل التدقيق.')),
-        );
-        if (mounted) setState(() => queue = loadQueue());
-      } else if (resultStatus == 'conflict') {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تغيرت حالة الطلب. تم تحديث القائمة.')),
-        );
-        if (mounted) setState(() => queue = loadQueue());
-      } else {
-        throw Exception('لم يتم قبول القرار. تحقق من الصلاحية ومرحلة الاعتماد.');
+      if (result is! Map ||
+          result['result_status'] != 'committed' ||
+          result['resulting_status'] != expectedResult) {
+        if (result is Map && result['result_status'] == 'conflict') {
+          throw Exception('تغيرت حالة الطلب. تم تحديث القائمة.');
+        }
+        throw Exception('لم يؤكد الخادم حفظ الحالة الناتجة المتوقعة للقرار.');
       }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ قرار المراجعة وتسجيله في سجل التدقيق.')),
       );
+      setState(() => queue = loadQueue());
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+        if (e.toString().contains('تغيرت حالة الطلب')) {
+          setState(() => queue = loadQueue());
+        }
+      }
+    } finally {
+      if (mounted) setState(() => processingRequests.remove(requestId));
     }
   }
 
@@ -578,14 +618,19 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
                     Text('الدور المطلوب: ' + (item['requested_role_code']?.toString() ?? 'غير محدد')),
                     Text('البريد/الهاتف لا يُعرضان هنا؛ بيانات الحساب محمية في شاشة الهوية.'),
                     const SizedBox(height: 12),
+                    final requestId = item['id']?.toString() ?? '';
+                    final isProcessing = processingRequests.contains(requestId);
                     Wrap(spacing: 8, children: [
                       FilledButton.icon(
-                        onPressed: () => decide(item, 'approve'),
-                        icon: const Icon(Icons.check, size: 18),
+                        onPressed: isProcessing ? null : () => decide(item, 'approve'),
+                        icon: isProcessing
+                            ? const SizedBox(width: 16, height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.check, size: 18),
                         label: const Text('اعتماد'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => decide(item, 'reject'),
+                        onPressed: isProcessing ? null : () => decide(item, 'reject'),
                         icon: const Icon(Icons.close, size: 18),
                         label: const Text('رفض'),
                       ),
