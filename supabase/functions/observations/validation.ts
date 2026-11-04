@@ -28,3 +28,14 @@ export const isValidObservedAt = (value: string, now = Date.now()): boolean => {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) && timestamp <= now + 5 * 60 * 1000;
 };
+
+
+export const isValidObservationSubmissionResult = (
+  value: unknown,
+  expectedStatus: "draft" | "submitted",
+): value is { id: string; status: string; replayed: boolean } => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.id === "string" && result.id.trim().length > 0 &&
+    result.status === expectedStatus && typeof result.replayed === "boolean";
+};
