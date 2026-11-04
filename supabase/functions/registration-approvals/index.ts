@@ -59,16 +59,24 @@ Deno.serve(async (request: Request) => {
         .eq("user_id", actorId).eq("approval_status", "approved")
         .lte("valid_from", now).or("valid_to.is.null,valid_to.gt." + now);
       if (error) return json({ error: "station_assignment_check_failed" }, 500);
-      const stationIds = [...new Set((assignments ?? []).map((item) => String(item.station_id)))];
-      if (stationIds.length > 0) {
-        const { data, error: queueError } = await admin
-          .from("registration_requests")
-          .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
-          .eq("status", "pending_station_approval")
-          .neq("user_id", actorId).in("requested_station_id", stationIds)
-          .order("submitted_at", { ascending: true });
-        if (queueError) return json({ error: "station_queue_failed" }, 500);
-        requestRows.push(...(data ?? []));
+      const assignedIds = [...new Set((assignments ?? []).map((item) => String(item.station_id)))];
+      if (assignedIds.length > 0) {
+        const { data: eligibleStations, error: eligibleError } = await admin
+          .from("station_catalogue").select("id")
+          .in("id", assignedIds).eq("approval_status", "approved")
+          .eq("operational_status", "active").eq("is_demo", false);
+        if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
+        const stationIds = (eligibleStations ?? []).map((item) => String(item.id));
+        if (stationIds.length > 0) {
+          const { data, error: queueError } = await admin
+            .from("registration_requests")
+            .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
+            .eq("status", "pending_station_approval")
+            .neq("user_id", actorId).in("requested_station_id", stationIds)
+            .order("submitted_at", { ascending: true });
+          if (queueError) return json({ error: "station_queue_failed" }, 500);
+          requestRows.push(...(data ?? []));
+        }
       }
     }
 
@@ -80,7 +88,19 @@ Deno.serve(async (request: Request) => {
         .neq("user_id", actorId)
         .order("submitted_at", { ascending: true });
       if (pendingError) return json({ error: "system_queue_failed" }, 500);
-      const ids = (pending ?? []).map((item) => String(item.id));
+      const pendingStationIds = [...new Set((pending ?? []).map((item) => String(item.requested_station_id)))];
+      let eligibleStationIds = new Set<string>();
+      if (pendingStationIds.length > 0) {
+        const { data: eligibleStations, error: eligibleError } = await admin
+          .from("station_catalogue").select("id")
+          .in("id", pendingStationIds).eq("approval_status", "approved")
+          .eq("operational_status", "active").eq("is_demo", false);
+        if (eligibleError) return json({ error: "station_eligibility_check_failed" }, 500);
+        eligibleStationIds = new Set((eligibleStations ?? []).map((item) => String(item.id)));
+      }
+      const eligiblePending = (pending ?? []).filter((item) =>
+        eligibleStationIds.has(String(item.requested_station_id)));
+      const ids = eligiblePending.map((item) => String(item.id));
       if (ids.length > 0) {
         const { data: approvals, error: auditError } = await admin
           .from("registration_audit_events").select("request_id,actor_user_id")
@@ -89,7 +109,7 @@ Deno.serve(async (request: Request) => {
         const distinct = new Set((approvals ?? [])
           .filter((item) => String(item.actor_user_id) !== actorId)
           .map((item) => String(item.request_id)));
-        requestRows.push(...(pending ?? []).filter((item) => distinct.has(String(item.id))));
+        requestRows.push(...eligiblePending.filter((item) => distinct.has(String(item.id))));
       }
     }
 
