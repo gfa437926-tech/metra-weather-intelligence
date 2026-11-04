@@ -21,7 +21,8 @@ The web build is generated in `build/web`. GitHub Actions uploads a CI artifact 
 - Authenticated users without a METRA account are routed to the registration form; pending/rejected accounts cannot enter the application shell.
 - Registration roles are read from the active, requestable role catalogue. Station choices are marked with their stored approval status.
 - Registration is submitted through the JWT-protected `registration` Edge Function and an authenticated `public.submit_metra_registration` wrapper.
-- The `registration-approvals` Edge Function exposes only the review queue allowed by active direct approval grants and station assignments. Its decision RPC binds the reviewer to `auth.uid()` and preserves the existing independent two-stage approval checks. The wrapper binds the request to `auth.uid()`, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
+- The `registration-approvals` Edge Function exposes only actionable review items allowed by active direct approval grants and approved station assignments. Its decision RPC binds the reviewer to `auth.uid()` and delegates to the private two-stage approval transaction.
+- The registration submission wrapper binds the applicant to `auth.uid()`, pins the accepted terms version, uses database time, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
 - Station data is fetched through the `station-directory` Edge Function.
 - The function verifies the user's JWT and requires `metra_account_states.account_state = active`.
 - It returns non-demo station catalogue records and their current valid coordinates.
@@ -35,7 +36,7 @@ supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for both functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`, and `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`.
+Keep JWT verification enabled for all three functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`, and `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`.
 
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
@@ -52,14 +53,14 @@ The Saudi National Center for Meteorology (NCM) documents a direct API integrati
 - NCM official developer guide: https://www.ncm.gov.sa/Ar/EService/Documents/developers/EWS%20APIs%20Technical%20Guide%20V.1.9.pdf
 
 ## Database safety
-The new METRA database now contains an authenticated registration entry-point function and its grants, tracked as a migration. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
+The new METRA database now contains authenticated registration submission and two-stage decision entry points, with restricted grants and database-side validation tracked as migrations. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
 ## CI
 GitHub Actions runs:
-1. Type-checks the `station-directory` and `registration` Edge Functions with Deno.
+1. Type-checks the `station-directory`, `registration`, and `registration-approvals` Edge Functions with Deno.
 2. Tests the station-directory permission rules with Deno.
 3. `flutter pub get`
-3. `flutter analyze`
-4. `flutter test`
-5. `flutter build web --release`
-6. Uploads `build/web` as the `metra-web-release` artifact.
+4. `flutter analyze`
+5. `flutter test`
+6. `flutter build web --release`
+7. Uploads `build/web` as the `metra-web-release` artifact.
