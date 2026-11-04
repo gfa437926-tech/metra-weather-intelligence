@@ -94,6 +94,9 @@ class _StationReviewPageState extends State<StationReviewPage> {
       if (result is Map && result['result_status'] == 'state_conflict') {
         throw Exception('تغيرت حالة المحطة بواسطة مراجع آخر. حدّث القائمة.');
       }
+      if (result is! Map) {
+        throw Exception('لم يرجع الخادم نتيجة مؤكدة لقرار المراجعة. حدّث القائمة قبل المتابعة.');
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تسجيل القرار وسجل التدقيق.')));
       setState(() => queue = _load());
