@@ -17,7 +17,10 @@ flutter build web --release --dart-define=SUPABASE_URL=https://tbdnklyxjvbrilvnw
 The web build is generated in `build/web`. GitHub Actions uploads a CI artifact named `metra-web-release` after analysis and tests pass. The artifact is a build output, not an automatically hosted public website.
 
 ## Supabase station directory
-- Supabase initialization and email/password sign-in are enabled when compile-time configuration is provided.
+- Supabase initialization, email/password sign-in, and account creation are enabled when compile-time configuration is provided.
+- Authenticated users without a METRA account are routed to the registration form; pending/rejected accounts cannot enter the application shell.
+- Registration roles are read from the active, requestable role catalogue. Station choices are marked with their stored approval status.
+- Registration is submitted through the JWT-protected `registration` Edge Function and an authenticated `public.submit_metra_registration` wrapper. The wrapper binds the request to `auth.uid()`, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
 - Station data is fetched through the `station-directory` Edge Function.
 - The function verifies the user's JWT and requires `metra_account_states.account_state = active`.
 - It returns non-demo station catalogue records and their current valid coordinates.
@@ -28,8 +31,9 @@ The web build is generated in `build/web`. GitHub Actions uploads a CI artifact 
 Deploy with Supabase CLI:
 ```bash
 supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
+supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled.
+Keep JWT verification enabled for both functions. The registration SQL entry point is tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql`.
 
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
@@ -46,12 +50,13 @@ The Saudi National Center for Meteorology (NCM) documents a direct API integrati
 - NCM official developer guide: https://www.ncm.gov.sa/Ar/EService/Documents/developers/EWS%20APIs%20Technical%20Guide%20V.1.9.pdf
 
 ## Database safety
-No schema or data changes were made to the new database during the current integration work. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
+The new METRA database now contains an authenticated registration entry-point function and its grants, tracked as a migration. Existing station and legacy-source records were not rewritten or deleted. The legacy database and legacy repository are outside the scope of all changes. Do not run destructive migrations or updates against either.
 
 ## CI
 GitHub Actions runs:
-1. Type-checks `supabase/functions/station-directory/index.ts` with Deno.
-2. `flutter pub get`
+1. Type-checks the `station-directory` and `registration` Edge Functions with Deno.
+2. Tests the station-directory permission rules with Deno.
+3. `flutter pub get`
 3. `flutter analyze`
 4. `flutter test`
 5. `flutter build web --release`
