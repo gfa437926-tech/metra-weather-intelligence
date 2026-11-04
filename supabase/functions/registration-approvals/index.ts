@@ -73,14 +73,14 @@ Deno.serve(async (request: Request) => {
           eligibleStations.push(...(data ?? []));
         }
         const stationIds = eligibleStations.map((item) => String(item.id));
-        if (stationIds.length > 0) {
+        for (const stationBatch of chunkValues(stationIds, 200)) {
           const pageSize = 500;
           for (let offset = 0; ; offset += pageSize) {
             const { data, error: queueError } = await admin
               .from("registration_requests")
               .select("id,user_id,requested_station_id,requested_role_code,status,submitted_at,terms_version")
               .eq("status", "pending_station_approval")
-              .neq("user_id", actorId).in("requested_station_id", stationIds)
+              .neq("user_id", actorId).in("requested_station_id", stationBatch)
               .order("submitted_at", { ascending: true }).order("id", { ascending: true })
               .range(offset, offset + pageSize - 1);
             if (queueError) return json({ error: "station_queue_failed" }, 500);
