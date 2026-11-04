@@ -20,6 +20,8 @@ jobs:
         run: deno check --no-lock supabase/functions/registration/index.ts
       - name: Type-check registration approvals Edge Function
         run: deno check --no-lock supabase/functions/registration-approvals/index.ts
+      - name: Test registration approval transaction response validation
+        run: deno test --no-lock supabase/functions/registration-approvals/validation_test.ts
       - name: Type-check observations Edge Function
         run: deno check --no-lock supabase/functions/observations/index.ts
       - name: Test Supabase Edge Function permission rules
