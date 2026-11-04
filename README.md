@@ -34,7 +34,8 @@ Keep JWT verification enabled.
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
 - Station catalogue records and coordinates are read from the new Supabase project through the authenticated Edge Function.
-- The map uses OpenStreetMap tiles. Overlapping identical coordinates are grouped so all associated station records remain discoverable.
+- The map uses OpenStreetMap tiles. Overlapping identical coordinates are grouped; selecting a marker opens every station record at that location, including classic, automatic and unclassified stations. Invalid or expired coordinates are not plotted.
+- Current coordinate history is paginated and validated; an invalid newest coordinate does not hide an older valid coordinate.
 - Official weather alerts, station-specific telemetry and radar/precipitation/temperature/wind map layers are not yet connected; the UI reports this rather than inventing data.
 - Station approval and operational statuses are displayed from stored values. Pending/unverified stations are not presented as operational.
 
@@ -49,8 +50,9 @@ No schema or data changes were made to the new database during the current integ
 
 ## CI
 GitHub Actions runs:
-1. `flutter pub get`
-2. `flutter analyze`
-3. `flutter test`
-4. `flutter build web --release`
-5. Uploads `build/web` as the `metra-web-release` artifact.
+1. Type-checks `supabase/functions/station-directory/index.ts` with Deno.
+2. `flutter pub get`
+3. `flutter analyze`
+4. `flutter test`
+5. `flutter build web --release`
+6. Uploads `build/web` as the `metra-web-release` artifact.
