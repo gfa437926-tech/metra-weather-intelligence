@@ -11,6 +11,32 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
+const isValidObservationPayload = (type: string, value: Record<string, unknown>): boolean => {
+  const ranges: Record<string, [number, number]> = {
+    temperature_c: [-90, 65],
+    humidity_percent: [0, 100],
+    wind_speed_kmh: [0, 400],
+    pressure_hpa: [800, 1100],
+    precipitation_mm: [0, 2000],
+  };
+  const allowed = new Set([...Object.keys(ranges), "description"]);
+  const keys = Object.keys(value);
+  if (keys.length === 0 || keys.some((key) => !allowed.has(key))) return false;
+  let measurementCount = 0;
+  for (const [key, item] of Object.entries(value)) {
+    if (key === "description") {
+      if (typeof item !== "string" || item.trim().length === 0 || item.length > 2000) return false;
+      continue;
+    }
+    const range = ranges[key];
+    if (!range || typeof item !== "number" || !Number.isFinite(item) ||
+        item < range[0] || item > range[1]) return false;
+    measurementCount++;
+  }
+  if (type === "phenomenon") return typeof value.description === "string";
+  return measurementCount > 0;
+};
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -125,11 +151,13 @@ Deno.serve(async (request: Request) => {
     const idempotencyKey = typeof payload.idempotency_key === "string" ? payload.idempotency_key : "";
     const observationPayload = payload.payload;
     const submit = payload.submit === true;
+    const observedTimestamp = Date.parse(observedAt);
     if (!stationId || !createStationIds.includes(stationId) ||
         !["daily", "hourly", "phenomenon"].includes(type) ||
-        !Number.isFinite(Date.parse(observedAt)) ||
+        !Number.isFinite(observedTimestamp) || observedTimestamp > Date.now() + 5 * 60 * 1000 ||
         !idempotencyKey.trim() || idempotencyKey.length > 128 ||
-        !isObject(observationPayload) || new TextEncoder().encode(JSON.stringify(observationPayload)).length > 65536) {
+        !isObject(observationPayload) || !isValidObservationPayload(type, observationPayload) ||
+        new TextEncoder().encode(JSON.stringify(observationPayload)).length > 65536) {
       return json({ error: "invalid_observation_payload" }, 400);
     }
     const { data, error } = await admin.rpc("metra_submit_observation", {
@@ -143,7 +171,7 @@ Deno.serve(async (request: Request) => {
     });
     if (error) {
       if (error.code === "42501") return json({ error: "observation_permission_denied" }, 403);
-      return json({ error: "observation_submit_failed", message: error.message }, 400);
+      return json({ error: "observation_submit_failed" }, 400);
     }
     return json({ result: data ?? null });
   }
@@ -167,7 +195,7 @@ Deno.serve(async (request: Request) => {
     });
     if (error) {
       if (error.code === "42501") return json({ error: "observation_permission_denied" }, 403);
-      return json({ error: "observation_decision_failed", message: error.message }, 400);
+      return json({ error: "observation_decision_failed" }, 400);
     }
     return json({ result: data ?? null });
   }
