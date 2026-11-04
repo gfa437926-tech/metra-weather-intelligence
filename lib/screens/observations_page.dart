@@ -307,10 +307,16 @@ class _ObservationsPageState extends State<ObservationsPage> {
   @override
   Widget build(BuildContext context) {
     if (widget.client == null) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('خدمة الرصد غير مهيأة. شغّل التطبيق بإعدادات Supabase.'),
-      ));
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          appBar: AppBar(title: const Text('الرصد التشغيلي')),
+          body: const Center(child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text('خدمة الرصد غير مهيأة. شغّل التطبيق بإعدادات Supabase.'),
+          )),
+        ),
+      );
     }
     return Directionality(
       textDirection: TextDirection.rtl,
