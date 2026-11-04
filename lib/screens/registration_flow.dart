@@ -313,8 +313,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               onChanged: busy ? null : (value) => setState(() => station = value),
             ),
             if (stations.isEmpty) const _InlineNotice('لا توجد محطات متاحة حالياً.', true),
-            if (!stations.any((item) => item is Map &&
-                isRegistrationStationEligible(Map<String, dynamic>.from(item))))
+            if (!stations.any(isRegistrationStationEligible))
               const _InlineNotice(
                 'لا توجد حالياً محطة معتمدة وفعالة تشغيلياً. يمكنك استعراض الدليل، لكن إرسال طلب الانتساب سيتاح بعد اعتماد محطة والتحقق من تشغيلها.',
                 true,
