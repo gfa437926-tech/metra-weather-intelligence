@@ -106,7 +106,8 @@ Deno.serve(async (request: Request) => {
     const { data: page, error: stationError } = await admin
       .from("station_catalogue")
       .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,is_demo")
-      .eq("is_demo", false).order("name_ar", { ascending: true })
+      .eq("is_demo", false)
+      .order("name_ar", { ascending: true }).order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (stationError) return json({ error: "station_query_failed" }, 500);
     stations.push(...(page ?? []));
@@ -126,7 +127,7 @@ Deno.serve(async (request: Request) => {
         .select("station_id,latitude,longitude,valid_from")
         .in("station_id", batch).lte("valid_from", now)
         .or(`valid_to.is.null,valid_to.gt.${now}`)
-        .order("valid_from", { ascending: false })
+        .order("valid_from", { ascending: false }).order("id", { ascending: false })
         .range(pageOffset, pageOffset + coordinatePageSize - 1);
       if (coordinateError) return json({ error: "coordinate_query_failed" }, 500);
       for (const item of coordinates ?? []) {
