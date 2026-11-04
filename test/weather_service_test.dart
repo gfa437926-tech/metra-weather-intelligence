@@ -54,6 +54,23 @@ void main() {
     client.close();
   });
 
+  test('rejects non-finite hourly temperatures and invalid weather codes', () async {
+    for (final payload in [
+      {'time': ['2026-11-03T10:00'], 'temperature_2m': ['NaN'], 'weather_code': [0]},
+      {'time': ['2026-11-03T10:00'], 'temperature_2m': [27], 'weather_code': [100]},
+      {'time': ['2026-11-03T10:00'], 'temperature_2m': [27], 'weather_code': [1.5]},
+    ]) {
+      final client = MockClient((_) async => http.Response(
+        jsonEncode({'hourly': payload}), 200,
+      ));
+      expect(
+        () => WeatherService(client: client).fetchHourlyRiyadh(),
+        throwsA(isA<WeatherServiceException>()),
+      );
+      client.close();
+    }
+  });
+
   test('non-success provider response becomes a service exception', () async {
     final client = MockClient((_) async => http.Response('unavailable', 503));
     expect(

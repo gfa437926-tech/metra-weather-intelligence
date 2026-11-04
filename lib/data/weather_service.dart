@@ -16,8 +16,6 @@ class WeatherService {
       'longitude': '46.6753',
       'current': 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,surface_pressure',
       'daily': 'temperature_2m_max,temperature_2m_min',
-      
-      
       'timezone': 'Asia/Riyadh',
       'forecast_days': '1',
     });
@@ -56,14 +54,26 @@ class WeatherService {
       throw const WeatherServiceException('Invalid hourly forecast');
     }
     try {
-      return List.generate(
-        times.length,
-        (i) => HourlyForecast(
-          time: DateTime.parse(times[i] as String),
-          temperature: (temps[i] as num).toDouble(),
-          weatherCode: (codes[i] as num).toInt(),
-        ),
-      );
+      return List.generate(times.length, (i) {
+        final rawTime = times[i];
+        final rawTemperature = temps[i];
+        final rawCode = codes[i];
+        if (rawTime is! String ||
+            rawTemperature is! num ||
+            !rawTemperature.isFinite ||
+            rawCode is! num ||
+            !rawCode.isFinite ||
+            rawCode % 1 != 0 ||
+            rawCode < 0 ||
+            rawCode > 99) {
+          throw const FormatException('Invalid hourly forecast value');
+        }
+        return HourlyForecast(
+          time: DateTime.parse(rawTime),
+          temperature: rawTemperature.toDouble(),
+          weatherCode: rawCode.toInt(),
+        );
+      });
     } on Object {
       throw const WeatherServiceException('Invalid hourly forecast values');
     }
