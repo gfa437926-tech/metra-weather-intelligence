@@ -150,9 +150,12 @@ class _ObservationsPageState extends State<ObservationsPage> {
       }
       final result = Map<String, dynamic>.from(response.data['result'] as Map);
       final expectedStatus = submit ? 'submitted' : 'draft';
+      final replayed = result['replayed'] == true;
+      final validReplayStatus = const {'draft', 'submitted', 'approved', 'returned'}
+          .contains(result['status']);
       if ((result['id']?.toString().trim().isEmpty ?? true) ||
-          result['status'] != expectedStatus ||
-          result['replayed'] is! bool) {
+          result['replayed'] is! bool ||
+          (replayed ? !validReplayStatus : result['status'] != expectedStatus)) {
         throw Exception('لم يؤكد الخادم حفظ الرصد المطلوب. أعد المحاولة قبل تغيير البيانات.');
       }
       _pendingIdempotencyKey = null;
