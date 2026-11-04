@@ -39,7 +39,7 @@ supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnw
 supabase functions deploy observations --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy station-review --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for all four functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/20261104014631_registration_authenticated_entrypoint.sql` and `supabase/migrations/20261104014827_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/20261104015029_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/20261104015823_restrict_registration_rpc_to_server_runtime.sql`.
+Keep JWT verification enabled for all five functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/20261104014631_registration_authenticated_entrypoint.sql` and `supabase/migrations/20261104014827_registration_server_timestamp_and_terms_guard.sql`,  `supabase/migrations/20261104015029_authenticated_registration_decision_entrypoint.sql`, and `supabase/migrations/20261104015823_restrict_registration_rpc_to_server_runtime.sql`.
 
 ## Account and approval bootstrap prerequisites
 - The inspected database currently has 62 non-demo station records, all pending/unverified, 50 coordinate-history rows, zero active METRA accounts, and zero submitted registration requests.
