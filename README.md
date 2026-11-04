@@ -20,7 +20,8 @@ The web build is generated in `build/web`. GitHub Actions uploads a CI artifact 
 - Supabase initialization, email/password sign-in, and account creation are enabled when compile-time configuration is provided.
 - Authenticated users without a METRA account are routed to the registration form; pending/rejected accounts cannot enter the application shell.
 - Registration roles are read from the active, requestable role catalogue. Station choices are marked with their stored approval status.
-- Registration is submitted through the JWT-protected `registration` Edge Function and an authenticated `public.submit_metra_registration` wrapper. The wrapper binds the request to `auth.uid()`, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
+- Registration is submitted through the JWT-protected `registration` Edge Function and an authenticated `public.submit_metra_registration` wrapper.
+- The `registration-approvals` Edge Function exposes only the review queue allowed by active direct approval grants and station assignments. Its decision RPC binds the reviewer to `auth.uid()` and preserves the existing independent two-stage approval checks. The wrapper binds the request to `auth.uid()`, rejects non-requestable roles and demo/invalid-authority stations, and delegates to the private idempotent registration transaction.
 - Station data is fetched through the `station-directory` Edge Function.
 - The function verifies the user's JWT and requires `metra_account_states.account_state = active`.
 - It returns non-demo station catalogue records and their current valid coordinates.
@@ -32,8 +33,9 @@ Deploy with Supabase CLI:
 ```bash
 supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
+supabase functions deploy registration-approvals --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for both functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`.
+Keep JWT verification enabled for both functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`, and `supabase/migrations/202611040003_authenticated_registration_decision_entrypoint.sql`.
 
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
