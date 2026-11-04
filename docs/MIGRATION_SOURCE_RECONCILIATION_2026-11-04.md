@@ -20,7 +20,7 @@ None. The migration source filename was aligned with the database history in com
 
 ## Applied migrations with no same-version source file
 
-The following 44 database migrations remain without exact source files in the active repository:
+The following 33 database migrations remain without exact source files in the active repository:
 
 - `20261102154652_create_independent_station_catalogue.sql`
 - `20261102155101_index_station_catalogue_foreign_keys.sql`
