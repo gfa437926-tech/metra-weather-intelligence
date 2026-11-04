@@ -107,7 +107,8 @@ Deno.serve(async (request: Request) => {
     const { data: coordinates, error: coordinateError } = await admin
       .from("station_coordinates")
       .select("station_id,latitude,longitude,valid_from")
-      .in("station_id", batch).lte("valid_from", now).is("valid_to", null)
+      .in("station_id", batch).lte("valid_from", now)
+      .or(`valid_to.is.null,valid_to.gt.${now}`)
       .order("valid_from", { ascending: false });
     if (coordinateError) return json({ error: "coordinate_query_failed" }, 500);
     for (const item of coordinates ?? []) {
