@@ -14,20 +14,25 @@ class AccessContext {
     final memberships = data['memberships'];
     final permissions = data['permissions'];
 
+    String? normalizedCode(dynamic value) {
+      if (value is! String) return null;
+      final code = value.trim();
+      return code.isEmpty ? null : code;
+    }
+
     final roles = <String>{};
     if (memberships is List) {
       for (final item in memberships.whereType<Map>()) {
-        final role = item['role_code'];
-        if (role is String && role.isNotEmpty) roles.add(role);
+        final role = normalizedCode(item['role_code']);
+        if (role != null) roles.add(role);
       }
     }
 
     final permissionSet = <String>{};
     if (permissions is List) {
       for (final permission in permissions) {
-        if (permission is String && permission.isNotEmpty) {
-          permissionSet.add(permission);
-        }
+        final code = normalizedCode(permission);
+        if (code != null) permissionSet.add(code);
       }
     }
 

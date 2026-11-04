@@ -21,8 +21,40 @@ void main() {
     expect(context.permissionCodes, ['observation.create', 'observation.submit']);
   });
 
+  test('trims codes and ignores blank or malformed entries', () {
+    final context = AccessContext.fromJson({
+      'access': {
+        'memberships': [
+          {'role_code': ' observer '},
+          {'role_code': '  '},
+          null,
+          {'role_code': 42},
+          {'role_code': 'observer'},
+        ],
+        'permissions': [
+          ' observation.read ',
+          '',
+          '   ',
+          null,
+          9,
+          'observation.read',
+        ],
+      },
+    });
+    expect(context.roleCodes, ['observer']);
+    expect(context.permissionCodes, ['observation.read']);
+  });
+
   test('missing access context is safely empty, never elevated', () {
     final context = AccessContext.fromJson({'stations': []});
+    expect(context.roleCodes, isEmpty);
+    expect(context.permissionCodes, isEmpty);
+  });
+
+  test('malformed access values remain safely empty', () {
+    final context = AccessContext.fromJson({
+      'access': {'memberships': 'invalid', 'permissions': {'unexpected': true}},
+    });
     expect(context.roleCodes, isEmpty);
     expect(context.permissionCodes, isEmpty);
   });
