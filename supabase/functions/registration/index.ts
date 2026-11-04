@@ -62,12 +62,21 @@ Deno.serve(async (request: Request) => {
       ]);
     if (rolesError || authoritiesError) return json({ error: "registration_catalog_failed" }, 500);
     const authorityNames = new Map((authorities ?? []).map((item) => [String(item.id), String(item.name_ar)]));
-    const { data: stations, error: stationError } = await admin
-      .from("station_catalogue")
-      .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,owner_authority_id")
-      .eq("is_demo", false).order("name_ar", { ascending: true });
-    if (stationError) return json({ error: "station_catalog_failed" }, 500);
-    const availableStations = (stations ?? [])
+    const stationRows: Record<string, unknown>[] = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data: page, error: stationError } = await admin
+        .from("station_catalogue")
+        .select("id,local_station_code,name_ar,name_en,station_type,operational_status,approval_status,owner_authority_id")
+        .eq("is_demo", false)
+        .order("name_ar", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (stationError) return json({ error: "station_catalog_failed" }, 500);
+      stationRows.push(...(page ?? []));
+      if (!page || page.length < pageSize) break;
+    }
+    const availableStations = stationRows
       .filter((station) => authorityNames.has(String(station.owner_authority_id)))
       .map((station) => ({
         id: station.id,
