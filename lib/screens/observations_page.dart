@@ -193,8 +193,13 @@ class _ObservationsPageState extends State<ObservationsPage> {
         'decision': decision,
         'note': note,
       });
-      if (response.status != 200 || response.data is! Map || response.data['result'] == null) {
+      if (response.status != 200 || response.data is! Map || response.data['result'] is! Map) {
         throw Exception(_errorMessage(response.data, 'تعذر تنفيذ قرار المراجعة.'));
+      }
+      final result = Map<String, dynamic>.from(response.data['result'] as Map);
+      final expectedStatus = decision == 'approve' ? 'approved' : 'returned';
+      if (result['id'] != item['id'] || result['status'] != expectedStatus) {
+        throw Exception('لم يؤكد الخادم حفظ قرار المراجعة المطلوب. حدّث السجل قبل المتابعة.');
       }
       if (!mounted) return;
       _toast(decision == 'approve' ? 'تم اعتماد الرصد.' : 'أعيد الرصد للتصحيح.');
