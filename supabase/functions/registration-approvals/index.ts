@@ -146,7 +146,7 @@ Deno.serve(async (request: Request) => {
         (decision === "reject" && !note)) {
       return json({ error: "invalid_decision_payload" }, 400);
     }
-    const { data, error } = await userClient.rpc("decide_metra_registration", {
+    const { data, error } = await admin.rpc("decide_metra_registration", {
       p_request_id: requestId,
       p_expected_status: expectedStatus,
       p_actor_user_id: actorId,

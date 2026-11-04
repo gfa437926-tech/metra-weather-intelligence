@@ -87,7 +87,7 @@ Deno.serve(async (request: Request) => {
     if (!payload || required.some((key) => typeof payload[key] !== "string" || !payload[key].trim())) {
       return json({ error: "invalid_registration_payload" }, 400);
     }
-    const { data, error } = await authClient.rpc("submit_metra_registration", {
+    const { data, error } = await admin.rpc("submit_metra_registration", {
       p_auth_user_id: userId,
       p_first_name: payload.first_name.trim(),
       p_father_name: payload.father_name.trim(),
