@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'data/station_directory_service.dart';
 import 'domain/station_record.dart';
+import 'domain/station_cluster.dart';
 import 'domain/access_context.dart';
 import 'data/weather_service.dart';
 import 'domain/weather_snapshot.dart';
@@ -309,11 +310,7 @@ class _MapPageState extends State<MapPage> {
                       .toList(growable: false);
                   // Identical coordinates collapse visually; cluster them so
                   // every record remains discoverable from the map.
-                  final clusters = <String, List<StationRecord>>{};
-                  for (final station in stations) {
-                    final key = '${station.latitude!.toStringAsFixed(5)},${station.longitude!.toStringAsFixed(5)}';
-                    clusters.putIfAbsent(key, () => <StationRecord>[]).add(station);
-                  }
+                  final clusters = clusterStationsByCoordinates(stations);
                   final markers = clusters.entries.map((entry) {
                     final members = entry.value;
                     final first = members.first;
