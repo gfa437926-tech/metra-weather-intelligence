@@ -6,12 +6,12 @@ import 'package:http/testing.dart';
 import 'package:metra_weather_intelligence/data/weather_service.dart';
 
 void main() {
-  test('fetchRiyadh parses current and daily values from provider', () async {
+  test('fetchDamascus parses current and daily values from provider', () async {
     final client = MockClient((request) async {
       expect(request.url.host, 'api.open-meteo.com');
-      expect(request.url.queryParameters['latitude'], '24.7136');
-      expect(request.url.queryParameters['longitude'], '46.6753');
-      expect(request.url.queryParameters['timezone'], 'Asia/Riyadh');
+      expect(request.url.queryParameters['latitude'], '33.5138');
+      expect(request.url.queryParameters['longitude'], '36.2765');
+      expect(request.url.queryParameters['timezone'], 'Asia/Damascus');
       expect(request.url.queryParameters['forecast_days'], '1');
       expect(request.url.queryParameters['current'], isNotNull);
       expect(request.url.queryParameters['daily'], isNotNull);
@@ -32,14 +32,14 @@ void main() {
         },
       }), 200);
     });
-    final result = await WeatherService(client: client).fetchRiyadh();
+    final result = await WeatherService(client: client).fetchDamascus();
     expect(result.temperature, 30);
     expect(result.maxTemperature, 35);
     expect(result.condition, 'غائم جزئياً');
     client.close();
   });
 
-  test('fetchHourlyRiyadh parses aligned hourly values', () async {
+  test('fetchHourlyDamascus parses aligned hourly values', () async {
     final client = MockClient((_) async => http.Response(jsonEncode({
       'hourly': {
         'time': ['2026-11-03T10:00', '2026-11-03T11:00'],
@@ -47,7 +47,7 @@ void main() {
         'weather_code': [0, 2],
       },
     }), 200));
-    final result = await WeatherService(client: client).fetchHourlyRiyadh();
+    final result = await WeatherService(client: client).fetchHourlyDamascus();
     expect(result, hasLength(2));
     expect(result.last.temperature, 28.5);
     expect(result.first.symbol, '☀');
@@ -64,7 +64,7 @@ void main() {
         jsonEncode({'hourly': payload}), 200,
       ));
       expect(
-        () => WeatherService(client: client).fetchHourlyRiyadh(),
+        () => WeatherService(client: client).fetchHourlyDamascus(),
         throwsA(isA<WeatherServiceException>()),
       );
       client.close();
@@ -74,7 +74,7 @@ void main() {
   test('non-success provider response becomes a service exception', () async {
     final client = MockClient((_) async => http.Response('unavailable', 503));
     expect(
-      () => WeatherService(client: client).fetchRiyadh(),
+      () => WeatherService(client: client).fetchDamascus(),
       throwsA(isA<WeatherServiceException>()),
     );
     client.close();
@@ -86,7 +86,7 @@ void main() {
       200,
     ));
     expect(
-      () => WeatherService(client: client).fetchHourlyRiyadh(),
+      () => WeatherService(client: client).fetchHourlyDamascus(),
       throwsA(isA<WeatherServiceException>()),
     );
     client.close();
