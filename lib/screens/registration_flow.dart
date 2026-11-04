@@ -423,7 +423,7 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
 
   Future<String?> requestNote({required bool requiredNote}) async {
     final controller = TextEditingController();
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => Directionality(
         textDirection: TextDirection.rtl,
@@ -455,6 +455,8 @@ class _RegistrationApprovalsPageState extends State<RegistrationApprovalsPage> {
         ),
       ),
     );
+    controller.dispose();
+    return result;
   }
 
   Future<void> decide(Map<String, dynamic> item, String decision) async {
