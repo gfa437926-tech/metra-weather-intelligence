@@ -413,9 +413,57 @@ class _MapPageState extends State<MapPage> {
           if (!snapshot.hasData) return const SizedBox.shrink();
           final records = snapshot.data!;
           final located = records.where((station) => station.hasCoordinates).length;
-          return Text(
-            '${located} موقعاً على الخريطة من أصل ${records.length} محطة في الدليل. المحطات التي لا تملك إحداثيات لا تُحذف من الدليل.',
-            style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+          final withoutCoordinates = records
+              .where((station) => !station.hasCoordinates)
+              .toList(growable: false);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${located} موقعاً على الخريطة من أصل ${records.length} محطة في الدليل. المحطات التي لا تملك إحداثيات لا تُحذف من الدليل.',
+                style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+              ),
+              if (withoutCoordinates.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: ExpansionTile(
+                    leading: const Icon(Icons.location_off_outlined, color: Colors.deepOrange),
+                    title: Text(
+                      'محطات غير محددة الإحداثيات (${withoutCoordinates.length})',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    subtitle: const Text(
+                      'تظهر هنا حتى لا تختفي من المتابعة؛ يلزم توثيق موقعها قبل وضعها على الخريطة.',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    children: [
+                      for (final station in withoutCoordinates)
+                        ListTile(
+                          dense: true,
+                          leading: Icon(
+                            station.isClassic
+                                ? Icons.home_work_outlined
+                                : station.isAutomatic
+                                    ? Icons.sensors
+                                    : Icons.device_unknown,
+                            color: station.isClassic
+                                ? const Color(0xFFB97716)
+                                : station.isAutomatic
+                                    ? blue
+                                    : Colors.blueGrey,
+                          ),
+                          title: Text(station.name),
+                          subtitle: Text(
+                            '${station.typeLabel} • ${station.code} • ${station.approvalLabel}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           );
         },
       ),
