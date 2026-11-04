@@ -33,7 +33,7 @@ Deploy with Supabase CLI:
 supabase functions deploy station-directory --project-ref tbdnklyxjvbrilvnwgmq
 supabase functions deploy registration --project-ref tbdnklyxjvbrilvnwgmq
 ```
-Keep JWT verification enabled for both functions. The registration SQL entry point is tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql`.
+Keep JWT verification enabled for both functions. The registration SQL entry point and server-side terms/time validation are tracked in `supabase/migrations/202611040001_registration_authenticated_entrypoint.sql` and `supabase/migrations/202611040002_registration_server_timestamp_and_terms_guard.sql`.
 
 ## Data integrity and current integrations
 - The home screen current conditions and hourly forecast are retrieved from Open-Meteo for Riyadh. They are not station telemetry.
