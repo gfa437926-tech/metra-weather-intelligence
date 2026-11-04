@@ -16,6 +16,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
         run: deno check --no-lock supabase/functions/station-directory/index.ts
+      - name: Test Supabase Edge Function permission rules
+        run: deno test --no-check supabase/functions/station-directory/permissions_test.ts
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

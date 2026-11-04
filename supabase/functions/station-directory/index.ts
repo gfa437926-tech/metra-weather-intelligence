@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { canReadStationDirectory } from "./permissions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,8 +93,7 @@ Deno.serve(async (request: Request) => {
     ...(directGrants ?? []).map((item) => String(item.permission_code)),
   ])].sort();
 
-  const canReadStations = effectivePermissions.includes("stations.read") ||
-    effectivePermissions.includes("station.read");
+  const canReadStations = canReadStationDirectory(effectivePermissions);
   if (includeStations && !canReadStations) {
     return json({ error: "permission_denied", required_permission: "stations.read" }, 403);
   }
