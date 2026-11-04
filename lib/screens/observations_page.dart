@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,6 +16,9 @@ class _ObservationsPageState extends State<ObservationsPage> {
   String? selectedStationId;
   String observationType = 'daily';
   bool busy = false;
+  String? _pendingIdempotencyKey;
+  String? _pendingRequestFingerprint;
+  String? _pendingObservedAt;
 
   final temperature = TextEditingController();
   final humidity = TextEditingController();
@@ -56,6 +61,7 @@ class _ObservationsPageState extends State<ObservationsPage> {
         'permission_denied': 'لا تملك الصلاحية المطلوبة.',
         'station_assignment_check_failed': 'تعذر التحقق من تكليف المحطة.',
         'observation_list_failed': 'تعذر تحميل سجل الرصد.',
+        'observation_submission_unconfirmed': 'لم يؤكد الخادم حفظ الرصد. أعد المحاولة دون تغيير البيانات.',
       };
       return labels[data['error'].toString()] ?? fallback;
     }
@@ -111,23 +117,47 @@ class _ObservationsPageState extends State<ObservationsPage> {
       return;
     }
 
+    final requestFingerprint = jsonEncode({
+      'station_id': stationId,
+      'observation_type': observationType,
+      'payload': values,
+      'submit': submit,
+    });
+    if (_pendingIdempotencyKey == null ||
+        _pendingRequestFingerprint != requestFingerprint) {
+      final userId = widget.client?.auth.currentUser?.id ?? 'user';
+      _pendingIdempotencyKey = '$userId-${DateTime.now().microsecondsSinceEpoch}';
+      _pendingRequestFingerprint = requestFingerprint;
+      _pendingObservedAt = DateTime.now().toUtc().toIso8601String();
+    }
+    final idempotencyKey = _pendingIdempotencyKey!;
+    final observedAt = _pendingObservedAt!;
+
     setState(() => busy = true);
     try {
-      final userId = widget.client?.auth.currentUser?.id ?? 'user';
-      final key = '$userId-${DateTime.now().microsecondsSinceEpoch}';
       final response = await widget.client!.functions.invoke('observations', body: {
         'action': 'submit',
         'station_id': stationId,
         'observation_type': observationType,
-        'observed_at': DateTime.now().toUtc().toIso8601String(),
-        'idempotency_key': key,
+        'observed_at': observedAt,
+        'idempotency_key': idempotencyKey,
         'payload': values,
         'submit': submit,
       });
-      if (response.status != 200 || response.data is! Map || response.data['result'] == null) {
+      if (response.status != 200 || response.data is! Map ||
+          response.data['result'] is! Map) {
         throw Exception(_errorMessage(response.data, 'تعذر حفظ الرصد.'));
       }
       final result = Map<String, dynamic>.from(response.data['result'] as Map);
+      final expectedStatus = submit ? 'submitted' : 'draft';
+      if ((result['id']?.toString().trim().isEmpty ?? true) ||
+          result['status'] != expectedStatus ||
+          result['replayed'] is! bool) {
+        throw Exception('لم يؤكد الخادم حفظ الرصد المطلوب. أعد المحاولة قبل تغيير البيانات.');
+      }
+      _pendingIdempotencyKey = null;
+      _pendingRequestFingerprint = null;
+      _pendingObservedAt = null;
       if (!mounted) return;
       _toast(result['replayed'] == true
           ? 'تم التعرف على العملية السابقة دون إنشاء نسخة مكررة.'
